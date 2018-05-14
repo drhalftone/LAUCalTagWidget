@@ -168,7 +168,9 @@ private:
     bool displayTextureFlag;
 
     QByteArray memoryObject[2];
+#ifdef QT_DEBUG
     QByteArray debugObject;
+#endif
 
     QOpenGLShaderProgram programA, programB, programC;
     QOpenGLShaderProgram programD, programE, programF;

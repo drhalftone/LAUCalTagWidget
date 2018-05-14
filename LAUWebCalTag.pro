@@ -62,6 +62,8 @@ HEADERS += \
 
 RESOURCES += lauwebcameracapture.qrc
 
+CONFIG(release, debug|release):DEFINES += QT_NO_DEBUG_OUTPUT
+
 unix:macx {
     CONFIG        += c++11
     INCLUDEPATH   += /usr/local/opt/opencv@3/include /usr/local/include

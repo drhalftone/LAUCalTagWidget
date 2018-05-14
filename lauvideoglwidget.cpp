@@ -159,7 +159,7 @@ void LAUVideoGLWidget::initialize()
 {
     // INITIALIZE OUR GL CALLS AND SET THE CLEAR COLOR
     initializeOpenGLFunctions();
-    glClearColor(0.5f, 0.0f, 0.0f, 1.0f);
+    glClearColor(1.0f, 1.0f, 1.0f, 1.0f);
 
     // CREATE THE VERTEX ARRAY OBJECT FOR FEEDING VERTICES TO OUR SHADER PROGRAMS
     vertexArrayObject.create();

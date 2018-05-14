@@ -482,7 +482,9 @@ void LAUCalTagGLWidget::process()
         // RESIZE THE BYTE ARRAYS AS NEEDED
         memoryObject[0].resize(videoTexture->width()*videoTexture->height());
         memoryObject[1].resize(videoTexture->width()*videoTexture->height());
+#ifdef QT_DEBUG
         debugObject.resize(3 * videoTexture->width()*videoTexture->height());
+#endif
 
         // BINARIZE THE INCOMING BUFFER
         binarize(frameBufferObjectA, frameBufferObjectB, frameBufferObjectC);
@@ -493,10 +495,11 @@ void LAUCalTagGLWidget::process()
         // DOWNLOAD THE RESULTING BINARY TEXTURE TO OUR MEMORY BUFFER FOR FURTHER PROCESSING
         glBindTexture(GL_TEXTURE_2D, frameBufferObjectB->texture());
         glGetTexImage(GL_TEXTURE_2D, 0, GL_RED, GL_UNSIGNED_BYTE, (unsigned char *)memoryObject[0].constData());
-
         glBindTexture(GL_TEXTURE_2D, frameBufferObjectC->texture());
         glGetTexImage(GL_TEXTURE_2D, 0, GL_RED, GL_UNSIGNED_BYTE, (unsigned char *)memoryObject[1].constData());
+#ifdef QT_DEBUG
         glGetTexImage(GL_TEXTURE_2D, 0, GL_RGB, GL_UNSIGNED_BYTE, (unsigned char *)debugObject.constData());
+#endif
 
         // LOOK FOR CALTAGS AND GET THE CR TO XYZ TRANSFORM
         bool okay = false;
@@ -508,9 +511,10 @@ void LAUCalTagGLWidget::process()
 
         qDebug() << "Detected grid:" << okay;
 
+#ifdef QT_DEBUG
         // UPLOAD THE DEBUG BUFFER TO THE GPU AS A TEXTURE
         videoTexture->setData(QOpenGLTexture::RGB, QOpenGLTexture::UInt8, (const void *)debugObject.constData());
-
+#endif
         // DRAW THE BEST-FIT XY PLANE TO SCREEN WITH THE BINARY IMAGE
         if (frameBufferObjectB && frameBufferObjectB->bind()) {
             if (programJ.bind()) {
@@ -1031,21 +1035,22 @@ cv::Mat LAUCalTagGLWidget::detectCalTagGrid(bool *okay)
     // CREATE CV::MAT WRAPPER AROUND OUR MEMORY OBJECT
     cv::Mat sbImage(videoTexture->height(), videoTexture->width(), CV_8UC1, (unsigned char *)memoryObject[0].constData(), videoTexture->width());
     cv::Mat inImage(videoTexture->height(), videoTexture->width(), CV_8UC1, (unsigned char *)memoryObject[1].constData(), videoTexture->width());
+#ifdef QT_DEBUG
     cv::Mat dbImage(videoTexture->height(), videoTexture->width(), CV_8UC3, (unsigned char *)debugObject.constData(), 3 * videoTexture->width());
-
+#endif
     cv::vector<cv::RotatedRect> rotatedRects = regionArea(sbImage);
 
     // MAKE SURE WE HAVE ENOUGH DETECTED RECTANGLES
     if (rotatedRects.size() > (unsigned long)minBoxCount) {
         // GET A GOOD APPROXIMATION OF WHERE THE SADDLE POINTS ARE
         cv::vector<cv::vector<cv::Point2f>> squares = findSaddles(rotatedRects);
-
+#ifdef QT_DEBUG
         for (unsigned int n = 0; n < squares.size(); n++) {
             for (unsigned int m = 0; m < squares[n].size(); m++) {
                 cv::circle(dbImage, squares[n][m], 2, cv::Scalar(0, 0, 255), 2);
             }
         }
-
+#endif
         // DECODE THE CALTAG SQUARES
         cv::vector<cv::vector<cv::Point2f>> coordinates = findPattern(inImage, squares);
 
@@ -1135,9 +1140,10 @@ cv::vector<cv::RotatedRect> LAUCalTagGLWidget::regionArea(cv::Mat inImage)
     cv::vector<cv::vector<cv::Point>> contours;
     cv::vector<cv::Vec4i> hierarchy;
     cv::vector<cv::RotatedRect> rotatedRects;
-
+#ifdef QT_DEBUG
     // CREATE A DEBUG IMAGE TO DRAW INTO
     cv::Mat dbImage(videoTexture->height(), videoTexture->width(), CV_8UC3, (unsigned char *)debugObject.constData(), 3 * videoTexture->width());
+#endif
 
     // SEARCH AND STORE ANY CONTOURS IN THE IMAGE
     cv::findContours(inImage.clone(), contours, hierarchy, CV_RETR_TREE, CV_CHAIN_APPROX_NONE, cv::Point(0, 0));
@@ -1193,9 +1199,11 @@ cv::vector<cv::RotatedRect> LAUCalTagGLWidget::regionArea(cv::Mat inImage)
 
                         cv::Point2f rect_points[4];
                         rectangles[i].points(rect_points);
+#ifdef QT_DEBUG
                         for (int j = 0; j < 4; j++) {
                             cv::line(dbImage, rect_points[j], rect_points[(j + 1) % 4], cv::Scalar(255, 0, 0));
                         }
+#endif
                     }
                 }
             }
@@ -1225,9 +1233,11 @@ cv::vector<cv::RotatedRect> LAUCalTagGLWidget::regionArea(cv::Mat inImage)
                 // DRAW ALL THE FINAL ROTATED RECTANGLES AT THIS POINT
                 cv::Point2f rect_points[4];
                 bestRectangles[i].points(rect_points);
+#ifdef QT_DEBUG
                 for (int j = 0; j < 4; j++) {
                     cv::line(dbImage, rect_points[j], rect_points[(j + 1) % 4], cv::Scalar(0, 255, 0));
                 }
+#endif
             }
         }
     }

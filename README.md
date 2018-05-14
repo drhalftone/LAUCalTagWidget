@@ -25,4 +25,4 @@ which results in the following figure:
 
 ![](https://github.com/drhalftone/LAUCalTagWidget/blob/master/Images/LAUCalTagWidget03.tiff)
 
-So now for some benchmarks.  Using my MacBook Pro (Retine, 15-inch, mid 2014) laptop with Intel Iris Pro graphics and running my webcam at 640x480, I'm measuring ~19.85 frames per second. 
+So now for some benchmarks.  Using my MacBook Pro (Retine, 15-inch, mid 2014) laptop with Intel Iris Pro graphics and running my webcam at 640x480, I'm topping out at over 30 fps (30 fps is the maximum rate of the camera at 640x480).

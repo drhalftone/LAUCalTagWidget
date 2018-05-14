@@ -51,6 +51,49 @@ LAUVideoGLWidget::~LAUVideoGLWidget()
 /****************************************************************************/
 /****************************************************************************/
 /****************************************************************************/
+void LAUVideoGLWidget::setFrame(int cols, int rows, QOpenGLTexture::PixelFormat format, QOpenGLTexture::PixelType type, unsigned char *buffer)
+{
+    // REPORT FRAME RATE TO THE CONSOLE
+    counter++;
+    if (counter >= 30) {
+        qDebug() << QString("%1 fps").arg(1000.0 * (float)counter / (float)time.elapsed());
+        time.restart();
+        counter = 0;
+    }
+
+    // MAKE THIS THE CURRENT OPENGL CONTEXT
+    makeCurrent();
+
+    // SEE IF WE NEED A NEW TEXTURE TO HOLD THE INCOMING VIDEO FRAME
+    if (!videoTexture || videoTexture->width() != cols || videoTexture->height() != rows) {
+        if (videoTexture) {
+            delete videoTexture;
+        }
+
+        // CREATE THE GPU SIDE TEXTURE BUFFER TO HOLD THE INCOMING VIDEO
+        videoTexture = new QOpenGLTexture(QOpenGLTexture::Target2D);
+        videoTexture->setSize(cols, rows);
+        videoTexture->setFormat(QOpenGLTexture::RGBA32F);
+        videoTexture->setWrapMode(QOpenGLTexture::ClampToBorder);
+        videoTexture->setMinificationFilter(QOpenGLTexture::Nearest);
+        videoTexture->setMagnificationFilter(QOpenGLTexture::Nearest);
+        videoTexture->allocateStorage();
+    }
+
+    // UPLOAD THE CPU BUFFER TO THE GPU TEXTURE
+    // COPY FRAME BUFFER TEXTURE FROM GPU TO LOCAL CPU BUFFER
+    videoTexture->setData(format, type, (const void *)buffer);
+
+    // PROCESS THE TEXTURE
+    process();
+
+    // UPDATE THE USER DISPLAY
+    update();
+}
+
+/****************************************************************************/
+/****************************************************************************/
+/****************************************************************************/
 void LAUVideoGLWidget::setFrame(const QVideoFrame &frame)
 {
     QVideoFrame localFrame = frame;

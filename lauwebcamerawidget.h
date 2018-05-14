@@ -117,7 +117,7 @@ public:
         widget = new LAUWebCameraWidget(capture);
 
         // SET THE LAYOUT AND DISPLAY OUR WIDGET INSIDE OF IT
-        this->setWindowTitle(QString("Video Recorder"));
+        this->setWindowTitle(QString("LAUCalTagWidget"));
         this->setLayout(new QVBoxLayout());
         this->layout()->setContentsMargins(0, 0, 0, 0);
         this->layout()->addWidget(widget);

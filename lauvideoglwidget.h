@@ -73,6 +73,7 @@ public:
         return (vertexArrayObject.isCreated());
     }
 
+    void setFrame(int cols, int rows, QOpenGLTexture::PixelFormat format, QOpenGLTexture::PixelType type, unsigned char *buffer);
     void setFrame(const QVideoFrame &frame);
     void setFrame(QImage frame);
 

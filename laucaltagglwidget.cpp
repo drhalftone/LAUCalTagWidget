@@ -302,7 +302,7 @@ LAUCalTagFilterWidget::LAUCalTagFilterWidget(LAUCalTagGLWidget *glwdgt, QWidget 
 
     flipCalTagsFlag = new QCheckBox();
     flipCalTagsFlag->setCheckable(true);
-    flipCalTagsFlag->setChecked(true);
+    flipCalTagsFlag->setChecked(false);
     flipCalTagsFlag->setFixedWidth(80);
     connect(flipCalTagsFlag, SIGNAL(clicked(bool)), glWidget, SLOT(onSetFlipCalTagsFlag(bool)));
 
@@ -325,6 +325,7 @@ LAUCalTagFilterWidget::LAUCalTagFilterWidget(LAUCalTagGLWidget *glwdgt, QWidget 
     glWidget->onSetMedianRadius(mednSpinBox->value());
     glWidget->onSetGaussianRadius(gausSpinBox->value());
     glWidget->onSetIterations(iterSpinBox->value());
+    glWidget->onSetFlipCalTagsFlag(flipCalTagsFlag->isChecked());
 }
 
 /****************************************************************************/

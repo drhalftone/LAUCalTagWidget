@@ -38,6 +38,7 @@
 LAUWebCameraWidget::LAUWebCameraWidget(QCamera::CaptureMode capture, QWidget *parent) : QWidget(parent), mode(capture), thread(NULL), camera(NULL), imageCapture(NULL), surface(NULL)
 {
     this->setLayout(new QVBoxLayout());
+    this->setWindowTitle(QString("LAUCalTag Video Widget"));
     this->layout()->setContentsMargins(6, 6, 6, 6);
 
     label = new LAUCalTagGLWidget();

@@ -185,10 +185,161 @@ const unsigned char bridgeLutD[512] = { 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00
 /****************************************************************************/
 /****************************************************************************/
 /****************************************************************************/
+LAUCalTagWidget::LAUCalTagWidget(QWidget *parent) : QWidget(parent), glWidget(NULL)
+{
+    this->setLayout(new QVBoxLayout());
+    this->setWindowTitle(QString("LAUCalTag Dialog"));
+    this->layout()->setContentsMargins(6, 6, 6, 6);
+    this->layout()->setSpacing(10);
+
+    glWidget = new LAUCalTagGLWidget();
+    glWidget->setMinimumSize(320, 240);
+    glWidget->setSizePolicy(QSizePolicy::Expanding, QSizePolicy::Expanding);
+    this->layout()->addWidget(glWidget);
+
+    QGroupBox *box = new QGroupBox(QString("Binarize Parameters"));
+    box->setSizePolicy(QSizePolicy::Expanding, QSizePolicy::Minimum);
+    box->setLayout(new QGridLayout());
+    box->layout()->setContentsMargins(6, 6, 6, 6);
+    ((QGridLayout *)(box->layout()))->setColumnStretch(0, 100);
+    ((QGridLayout *)(box->layout()))->setColumnMinimumWidth(2, 160);
+    this->layout()->addWidget(box);
+
+    iterSpinBox = new QSpinBox();
+    iterSpinBox->setMinimum(1);
+    iterSpinBox->setMaximum(5);
+    iterSpinBox->setFixedWidth(80);
+    iterSpinBox->setAlignment(Qt::AlignRight);
+    connect(iterSpinBox, SIGNAL(valueChanged(int)), glWidget, SLOT(onSetIterations(int)));
+
+    QLabel *label = new QLabel(QString("Gaussian Smoother Iterations:"));
+    label->setSizePolicy(QSizePolicy::Expanding, QSizePolicy::Fixed);
+    label->setAlignment(Qt::AlignRight);
+    ((QGridLayout *)(box->layout()))->addWidget(label, 0, 0, 1, 1, Qt::AlignRight);
+    ((QGridLayout *)(box->layout()))->addWidget(iterSpinBox, 0, 1, 1, 1, Qt::AlignLeft);
+
+    gausSpinBox = new QSpinBox();
+    gausSpinBox->setMinimum(1);
+    gausSpinBox->setMaximum(127);
+    gausSpinBox->setFixedWidth(80);
+    gausSpinBox->setAlignment(Qt::AlignRight);
+    connect(gausSpinBox, SIGNAL(valueChanged(int)), glWidget, SLOT(onSetGaussianRadius(int)));
+
+    label = new QLabel(QString("Guassian Smoother Radius:"));
+    label->setSizePolicy(QSizePolicy::Expanding, QSizePolicy::Fixed);
+    label->setAlignment(Qt::AlignRight);
+    ((QGridLayout *)(box->layout()))->addWidget(label, 0, 2, 1, 1, Qt::AlignRight);
+    ((QGridLayout *)(box->layout()))->addWidget(gausSpinBox, 0, 3, 1, 1, Qt::AlignLeft);
+
+    offsetSpinBox = new QDoubleSpinBox();
+    offsetSpinBox->setMinimum(-1.0);
+    offsetSpinBox->setMaximum(1.0);
+    offsetSpinBox->setSingleStep(0.01);
+    offsetSpinBox->setFixedWidth(80);
+    offsetSpinBox->setAlignment(Qt::AlignRight);
+    connect(offsetSpinBox, SIGNAL(valueChanged(double)), glWidget, SLOT(onSetOffset(double)));
+
+    label = new QLabel(QString("Gaussian Filter Offset:"));
+    label->setSizePolicy(QSizePolicy::Expanding, QSizePolicy::Fixed);
+    label->setAlignment(Qt::AlignRight);
+    ((QGridLayout *)(box->layout()))->addWidget(label, 1, 0, 1, 1, Qt::AlignRight);
+    ((QGridLayout *)(box->layout()))->addWidget(offsetSpinBox, 1, 1, 1, 1, Qt::AlignLeft);
+
+    mednSpinBox = new QSpinBox();
+    mednSpinBox->setMinimum(0);
+    mednSpinBox->setMaximum(127);
+    mednSpinBox->setFixedWidth(80);
+    mednSpinBox->setAlignment(Qt::AlignRight);
+    connect(mednSpinBox, SIGNAL(valueChanged(int)), glWidget, SLOT(onSetMedianRadius(int)));
+
+    label = new QLabel(QString("Median Smoother Radius:"));
+    label->setSizePolicy(QSizePolicy::Expanding, QSizePolicy::Fixed);
+    label->setAlignment(Qt::AlignRight);
+    ((QGridLayout *)(box->layout()))->addWidget(label, 1, 2, 1, 1, Qt::AlignRight);
+    ((QGridLayout *)(box->layout()))->addWidget(mednSpinBox, 1, 3, 1, 1, Qt::AlignLeft);
+
+    box = new QGroupBox(QString("CalTag Parameters"));
+    box->setSizePolicy(QSizePolicy::Expanding, QSizePolicy::Minimum);
+    box->setLayout(new QGridLayout());
+    box->layout()->setContentsMargins(6, 6, 6, 6);
+    ((QGridLayout *)(box->layout()))->setColumnStretch(0, 100);
+    ((QGridLayout *)(box->layout()))->setColumnMinimumWidth(2, 160);
+    this->layout()->addWidget(box);
+
+    minRegionArea = new QSpinBox();
+    minRegionArea->setMinimum(0);
+    minRegionArea->setMaximum(1000000);
+    minRegionArea->setValue(128 - 32);
+    minRegionArea->setFixedWidth(80);
+    connect(minRegionArea, SIGNAL(valueChanged(int)), glWidget, SLOT(onSetMinRegionArea(int)));
+
+    label = new QLabel(QString("Minimum Region Area:"));
+    label->setSizePolicy(QSizePolicy::Expanding, QSizePolicy::Fixed);
+    label->setAlignment(Qt::AlignRight);
+    ((QGridLayout *)(box->layout()))->addWidget(label, 0, 0, 1, 1, Qt::AlignRight);
+    ((QGridLayout *)(box->layout()))->addWidget(minRegionArea, 0, 1, 1, 1, Qt::AlignLeft);
+
+    maxRegionArea = new QSpinBox();
+    maxRegionArea->setMinimum(0);
+    maxRegionArea->setMaximum(1000000);
+    maxRegionArea->setValue((640 * 480) / 16);
+    maxRegionArea->setFixedWidth(80);
+    connect(maxRegionArea, SIGNAL(valueChanged(int)), glWidget, SLOT(onSetMaxRegionArea(int)));
+
+    label = new QLabel(QString("Maximum Region Area:"));
+    label->setSizePolicy(QSizePolicy::Expanding, QSizePolicy::Fixed);
+    label->setAlignment(Qt::AlignRight);
+    ((QGridLayout *)(box->layout()))->addWidget(label, 0, 2, 1, 1, Qt::AlignRight);
+    ((QGridLayout *)(box->layout()))->addWidget(maxRegionArea, 0, 3, 1, 1, Qt::AlignLeft);
+
+    minBoxCount = new QSpinBox();
+    minBoxCount->setMinimum(0);
+    minBoxCount->setMaximum(1000000);
+    minBoxCount->setValue(128);
+    minBoxCount->setFixedWidth(80);
+    connect(minBoxCount, SIGNAL(valueChanged(int)), glWidget, SLOT(onSetMinBoxCount(int)));
+
+    label = new QLabel(QString("Minimum Box Count:"));
+    label->setSizePolicy(QSizePolicy::Expanding, QSizePolicy::Fixed);
+    label->setAlignment(Qt::AlignRight);
+    ((QGridLayout *)(box->layout()))->addWidget(label, 1, 0, 1, 1, Qt::AlignRight);
+    ((QGridLayout *)(box->layout()))->addWidget(minBoxCount, 1, 1, 1, 1, Qt::AlignLeft);
+
+    flipCalTagsFlag = new QCheckBox();
+    flipCalTagsFlag->setCheckable(true);
+    flipCalTagsFlag->setChecked(false);
+    flipCalTagsFlag->setFixedWidth(80);
+    connect(flipCalTagsFlag, SIGNAL(clicked(bool)), glWidget, SLOT(onSetFlipCalTagsFlag(bool)));
+
+    label = new QLabel(QString("Flip CalTag (backlight):"));
+    label->setSizePolicy(QSizePolicy::Expanding, QSizePolicy::Fixed);
+    label->setAlignment(Qt::AlignRight);
+    ((QGridLayout *)(box->layout()))->addWidget(label, 1, 2, 1, 1, Qt::AlignRight);
+    ((QGridLayout *)(box->layout()))->addWidget(flipCalTagsFlag, 1, 3, 1, 1, Qt::AlignLeft);
+
+    // INITIALIZE THE CURVATURE FILTER
+    QSettings settings;
+
+    // LOAD THE PARAMETERS FROM SETTINGS
+    iterSpinBox->setValue(settings.value(QString("LAUCalTagScanWidget::iterSpinBox"), glWidget->iterations()).toInt());
+    gausSpinBox->setValue(settings.value(QString("LAUCalTagScanWidget::gausSpinBox"), glWidget->gaussianRadius()).toInt());
+    mednSpinBox->setValue(settings.value(QString("LAUCalTagScanWidget::mednSpinBox"), glWidget->medianRadius()).toInt());
+    offsetSpinBox->setValue(settings.value(QString("LAUCalTagScanWidget::offsetSpinBox"), glWidget->offset()).toDouble());
+
+    // COPY THE PARAMETERS OVER TO THE GLFILTER
+    glWidget->onSetMedianRadius(mednSpinBox->value());
+    glWidget->onSetGaussianRadius(gausSpinBox->value());
+    glWidget->onSetIterations(iterSpinBox->value());
+    glWidget->onSetFlipCalTagsFlag(flipCalTagsFlag->isChecked());
+}
+
+/****************************************************************************/
+/****************************************************************************/
+/****************************************************************************/
 LAUCalTagFilterWidget::LAUCalTagFilterWidget(LAUCalTagGLWidget *glwdgt, QWidget *parent) : QWidget(parent), glWidget(glwdgt)
 {
     this->setLayout(new QVBoxLayout());
-    this->setWindowTitle(QString("Curvature Dialog"));
+    this->setWindowTitle(QString("LAUCalTag Dialog"));
     this->layout()->setContentsMargins(6, 6, 6, 6);
     this->layout()->setSpacing(10);
 

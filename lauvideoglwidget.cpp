@@ -51,8 +51,13 @@ LAUVideoGLWidget::~LAUVideoGLWidget()
 /****************************************************************************/
 /****************************************************************************/
 /****************************************************************************/
-void LAUVideoGLWidget::setFrame(int cols, int rows, QOpenGLTexture::PixelFormat format, QOpenGLTexture::PixelType type, unsigned char *buffer)
+void LAUVideoGLWidget::setFrame(unsigned char *buffer)
 {
+    // MAKE SURE USER SET THE SIZE OF THE INCOMING BUFFER BEFORE CALLING THIS METHOD
+    if (numCols < 0 && numRows < 0) {
+        return;
+    }
+
     // REPORT FRAME RATE TO THE CONSOLE
     counter++;
     if (counter >= 30) {
@@ -65,14 +70,14 @@ void LAUVideoGLWidget::setFrame(int cols, int rows, QOpenGLTexture::PixelFormat 
     makeCurrent();
 
     // SEE IF WE NEED A NEW TEXTURE TO HOLD THE INCOMING VIDEO FRAME
-    if (!videoTexture || videoTexture->width() != cols || videoTexture->height() != rows) {
+    if (!videoTexture || videoTexture->width() != numCols || videoTexture->height() != numRows) {
         if (videoTexture) {
             delete videoTexture;
         }
 
         // CREATE THE GPU SIDE TEXTURE BUFFER TO HOLD THE INCOMING VIDEO
         videoTexture = new QOpenGLTexture(QOpenGLTexture::Target2D);
-        videoTexture->setSize(cols, rows);
+        videoTexture->setSize(numCols, numRows);
         videoTexture->setFormat(QOpenGLTexture::RGBA32F);
         videoTexture->setWrapMode(QOpenGLTexture::ClampToBorder);
         videoTexture->setMinificationFilter(QOpenGLTexture::Nearest);
@@ -82,7 +87,7 @@ void LAUVideoGLWidget::setFrame(int cols, int rows, QOpenGLTexture::PixelFormat 
 
     // UPLOAD THE CPU BUFFER TO THE GPU TEXTURE
     // COPY FRAME BUFFER TEXTURE FROM GPU TO LOCAL CPU BUFFER
-    videoTexture->setData(format, type, (const void *)buffer);
+    videoTexture->setData(pixelFormat, pixelType, (const void *)buffer);
 
     // PROCESS THE TEXTURE
     process();
@@ -133,7 +138,7 @@ void LAUVideoGLWidget::setFrame(const QVideoFrame &frame)
             if (bytesPerSample == sizeof(unsigned char)) {
                 videoTexture->setData(QOpenGLTexture::BGRA, QOpenGLTexture::UInt8, (const void *)localFrame.bits());
             }
-        } else if (format == QVideoFrame::Format_RGB32){
+        } else if (format == QVideoFrame::Format_RGB32) {
             unsigned int bytesPerSample = localFrame.bytesPerLine() / localFrame.width() / 4;
             if (bytesPerSample == sizeof(unsigned char)) {
                 videoTexture->setData(QOpenGLTexture::BGRA, QOpenGLTexture::UInt8, (const void *)localFrame.bits());

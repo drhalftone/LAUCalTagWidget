@@ -98,9 +98,6 @@ public:
     }
 
     LAUMemoryObject grabImage();
-    void initialize();
-    void process();
-    void paint();
 
 public slots:
     void onSetOffset(double val)
@@ -147,6 +144,11 @@ public slots:
     {
         displayTextureFlag = state;
     }
+
+protected:
+    void initialize();
+    void process();
+    void paint();
 
 private:
     typedef struct {
@@ -224,6 +226,97 @@ public:
     LAUCalTagFilterWidget(LAUCalTagGLWidget *glwdgt, QWidget *parent = NULL);
 
 public slots:
+
+private:
+    LAUCalTagGLWidget *glWidget;
+
+    QSpinBox *iterSpinBox;
+    QSpinBox *gausSpinBox;
+    QSpinBox *mednSpinBox;
+    QDoubleSpinBox *offsetSpinBox;
+
+    QSpinBox *minRegionArea;     // MINIMUM REGION AREA
+    QSpinBox *maxRegionArea;     // MAXIMUM REGION AREA
+    QSpinBox *minBoxCount;       // MINIMUM BOX AREA
+    QCheckBox *flipCalTagsFlag;  // IS THE TARGET BACKLIT?
+};
+
+/****************************************************************************/
+/****************************************************************************/
+/****************************************************************************/
+class LAUCalTagWidget : public QWidget
+{
+    Q_OBJECT
+
+public:
+    LAUCalTagWidget(QWidget *parent = NULL);
+
+    bool isValid() const
+    {
+        if (glWidget) {
+            return (glWidget->wasInitialized());
+        }
+        return (false);
+    }
+
+    bool wasInitialized() const
+    {
+        if (glWidget) {
+            return (glWidget->wasInitialized());
+        }
+        return (false);
+    }
+
+    void setFrameSize(int cols, int rows)
+    {
+        if (glWidget) {
+            glWidget->setFrameSize(cols, rows);
+        }
+    }
+
+    void setFrameFormat(QOpenGLTexture::PixelFormat format)
+    {
+        if (glWidget) {
+            glWidget->setFrameFormat(format);
+        }
+    }
+
+    void setPixelType(QOpenGLTexture::PixelType type)
+    {
+        if (glWidget) {
+            glWidget->setPixelType(type);
+        }
+    }
+
+    LAUMemoryObject grabImage()
+    {
+        if (glWidget) {
+            return (glWidget->grabImage());
+        }
+        return (LAUMemoryObject());
+    }
+
+public slots:
+    void setFrame(unsigned char *frame)
+    {
+        if (glWidget) {
+            glWidget->setFrame(frame);
+        }
+    }
+
+    void setFrame(const QVideoFrame &frame)
+    {
+        if (glWidget) {
+            glWidget->setFrame(frame);
+        }
+    }
+
+    void setFrame(QImage frame)
+    {
+        if (glWidget) {
+            glWidget->setFrame(frame);
+        }
+    }
 
 private:
     LAUCalTagGLWidget *glWidget;

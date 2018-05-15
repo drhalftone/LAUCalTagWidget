@@ -60,7 +60,7 @@ class LAUVideoGLWidget : public QOpenGLWidget, protected QOpenGLFunctions
     Q_OBJECT
 
 public:
-    explicit LAUVideoGLWidget(QWidget *parent = NULL) : QOpenGLWidget(parent), videoTexture(NULL), counter(0) { ; }
+    explicit LAUVideoGLWidget(QWidget *parent = NULL) : QOpenGLWidget(parent), videoTexture(NULL), numCols(-1), numRows(-1), pixelFormat(QOpenGLTexture::RGBA), pixelType(QOpenGLTexture::UInt8), counter(0) { ; }
     ~LAUVideoGLWidget();
 
     virtual bool isValid() const
@@ -73,21 +73,38 @@ public:
         return (vertexArrayObject.isCreated());
     }
 
-    void setFrame(int cols, int rows, QOpenGLTexture::PixelFormat format, QOpenGLTexture::PixelType type, unsigned char *buffer);
-    void setFrame(const QVideoFrame &frame);
-    void setFrame(QImage frame);
+    void setFrameSize(int cols, int rows)
+    {
+        numCols = cols;
+        numRows = rows;
+    }
+
+    void setFrameFormat(QOpenGLTexture::PixelFormat format)
+    {
+        pixelFormat = format;
+    }
+
+    void setPixelType(QOpenGLTexture::PixelType type)
+    {
+        pixelType = type;
+    }
 
     virtual LAUMemoryObject grabImage()
     {
         return (LAUMemoryObject());
     }
 
+public slots:
+    void setFrame(unsigned char *buffer);
+    void setFrame(const QVideoFrame &frame);
+    void setFrame(QImage frame);
+
+protected:
     virtual void process() { ; }
     virtual void initialize();
     virtual void resize(int w, int h);
     virtual void paint();
 
-protected:
     void initializeGL()
     {
         initialize();
@@ -112,6 +129,10 @@ protected:
     qreal devicePixelRatio;
 
 private:
+    int numCols, numRows;
+    QOpenGLTexture::PixelFormat pixelFormat;
+    QOpenGLTexture::PixelType pixelType;
+
     int counter;
     QTime time;
 };

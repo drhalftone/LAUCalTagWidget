@@ -51,9 +51,9 @@ int main(int argc, char *argv[])
     QSurfaceFormat::setDefaultFormat(format);
 
     LAUWebCameraDialog w(QCamera::CaptureVideo);
-
     if (w.isValid()) {
         return w.exec();
     }
+
     return (0);
 }

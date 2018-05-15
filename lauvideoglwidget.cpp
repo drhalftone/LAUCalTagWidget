@@ -54,6 +54,7 @@ LAUVideoGLWidget::~LAUVideoGLWidget()
 void LAUVideoGLWidget::setFrame(const QVideoFrame &frame)
 {
     QVideoFrame localFrame = frame;
+
     if (localFrame.map(QAbstractVideoBuffer::ReadOnly)) {
         // REPORT FRAME RATE TO THE CONSOLE
         counter++;
@@ -85,6 +86,11 @@ void LAUVideoGLWidget::setFrame(const QVideoFrame &frame)
         // COPY FRAME BUFFER TEXTURE FROM GPU TO LOCAL CPU BUFFER
         QVideoFrame::PixelFormat format = localFrame.pixelFormat();
         if (format == QVideoFrame::Format_ARGB32) {
+            unsigned int bytesPerSample = localFrame.bytesPerLine() / localFrame.width() / 4;
+            if (bytesPerSample == sizeof(unsigned char)) {
+                videoTexture->setData(QOpenGLTexture::BGRA, QOpenGLTexture::UInt8, (const void *)localFrame.bits());
+            }
+        } else if (format == QVideoFrame::Format_RGB32){
             unsigned int bytesPerSample = localFrame.bytesPerLine() / localFrame.width() / 4;
             if (bytesPerSample == sizeof(unsigned char)) {
                 videoTexture->setData(QOpenGLTexture::BGRA, QOpenGLTexture::UInt8, (const void *)localFrame.bits());

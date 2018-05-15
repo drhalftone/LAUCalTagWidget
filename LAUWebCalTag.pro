@@ -81,9 +81,9 @@ unix:!macx {
 }
 
 win32 {
-    INCLUDEPATH   += $$quote(C:/usr/opencv/build/include)
-    DEPENDPATH    += $$quote(C:/usr/opencv/build/include)
-    LIBS          += -L$$quote(C:/usr/opencv/build/x64/vc12/lib)
+    INCLUDEPATH   += $$quote(C:/usr/opencv/build/include) $$quote(C:/usr/include)
+    DEPENDPATH    += $$quote(C:/usr/opencv/build/include) $$quote(C:/usr/include)
+    LIBS          += -L$$quote(C:/usr/lib) -L$$quote(C:/usr/opencv/build/x64/vc12/lib) -llibtiff_i -lopengl32
     CONFIG(release, debug|release): LIBS += -lopencv_world310
     CONFIG(debug, debug|release):   LIBS += -lopencv_world310d
 }

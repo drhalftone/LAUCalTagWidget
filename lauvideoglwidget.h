@@ -60,7 +60,7 @@ class LAUVideoGLWidget : public QOpenGLWidget, protected QOpenGLFunctions
     Q_OBJECT
 
 public:
-    explicit LAUVideoGLWidget(QWidget *parent = NULL) : QOpenGLWidget(parent), videoTexture(NULL), numCols(-1), numRows(-1), pixelFormat(QOpenGLTexture::RGBA), pixelType(QOpenGLTexture::UInt8), counter(0) { ; }
+    explicit LAUVideoGLWidget(QWidget *parent = NULL) : QOpenGLWidget(parent), videoTexture(NULL), numCols(-1), numRows(-1), pixelFormat(QOpenGLTexture::RGBA), pixelType(QOpenGLTexture::UInt8), counter(0), localBuffer(NULL) { ; }
     ~LAUVideoGLWidget();
 
     virtual bool isValid() const
@@ -101,20 +101,12 @@ public slots:
 
 protected:
     virtual void process() { ; }
-    virtual void initialize();
-    virtual void resize(int w, int h);
+    virtual void initialize() { ; }
+    virtual void resize(int w, int h) { ; }
     virtual void paint();
 
-    void initializeGL()
-    {
-        initialize();
-    }
-
-    void resizeGL(int w, int h)
-    {
-        resize(w, h);
-    }
-
+    void initializeGL();
+    void resizeGL(int w, int h);
     void paintGL()
     {
         paint();
@@ -124,6 +116,10 @@ protected:
     QOpenGLBuffer quadVertexBuffer, quadIndexBuffer;
     QOpenGLShaderProgram program;
     QOpenGLTexture *videoTexture;
+
+    QVideoFrame localVideoFrame;
+    QImage localImage;
+    unsigned char *localBuffer;
 
     int localWidth, localHeight;
     qreal devicePixelRatio;

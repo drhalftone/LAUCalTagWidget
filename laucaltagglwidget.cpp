@@ -185,7 +185,24 @@ const unsigned char bridgeLutD[512] = { 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00
 /****************************************************************************/
 /****************************************************************************/
 /****************************************************************************/
+LAUCalTagWidget::LAUCalTagWidget(QImage image, QWidget *parent) : QWidget(parent), glWidget(NULL)
+{
+    initialize();
+    glWidget->setFrame(image);
+}
+
+/****************************************************************************/
+/****************************************************************************/
+/****************************************************************************/
 LAUCalTagWidget::LAUCalTagWidget(QWidget *parent) : QWidget(parent), glWidget(NULL)
+{
+    initialize();
+}
+
+/****************************************************************************/
+/****************************************************************************/
+/****************************************************************************/
+void LAUCalTagWidget::initialize()
 {
     this->setLayout(new QVBoxLayout());
     this->setWindowTitle(QString("LAUCalTag Dialog"));
@@ -559,8 +576,6 @@ void LAUCalTagGLWidget::testFBO(QOpenGLFramebufferObject *fbo[])
 /****************************************************************************/
 void LAUCalTagGLWidget::initialize()
 {
-    LAUVideoGLWidget::initialize();
-
     // CREATE A TEXTURE FOR LOOK UP OPERATIONS
     textureLUT = new QOpenGLTexture(QOpenGLTexture::Target1D);
     textureLUT->setSize(512);
@@ -1734,7 +1749,7 @@ bool LAUCalTagGLWidget::checkBitCode(int code, cv::Point2f *pt)
     for (int i = 0; i < 20; i++) {
         for (int j = 13; j >= 0; j--) {
             if (code == realBitCodes[i][j]) {
-                *pt = cv::Point2f((float)(20 - i) - 10.0f, (float)(13 - j) - 6.0f);
+                *pt = cv::Point2f((float)(20 - i) - 14.0f, (float)(13 - j) - 7.0f);
                 return (true);
             } else if (code > realBitCodes[i][j]) {
                 return (false);

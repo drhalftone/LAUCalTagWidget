@@ -53,47 +53,51 @@ LAUVideoGLWidget::~LAUVideoGLWidget()
 /****************************************************************************/
 void LAUVideoGLWidget::setFrame(unsigned char *buffer)
 {
-    // MAKE SURE USER SET THE SIZE OF THE INCOMING BUFFER BEFORE CALLING THIS METHOD
-    if (numCols < 0 && numRows < 0) {
-        return;
-    }
-
-    // REPORT FRAME RATE TO THE CONSOLE
-    counter++;
-    if (counter >= 30) {
-        qDebug() << QString("%1 fps").arg(1000.0 * (float)counter / (float)time.elapsed());
-        time.restart();
-        counter = 0;
-    }
-
-    // MAKE THIS THE CURRENT OPENGL CONTEXT
-    makeCurrent();
-
-    // SEE IF WE NEED A NEW TEXTURE TO HOLD THE INCOMING VIDEO FRAME
-    if (!videoTexture || videoTexture->width() != numCols || videoTexture->height() != numRows) {
-        if (videoTexture) {
-            delete videoTexture;
+    if (wasInitialized()){
+        // MAKE SURE USER SET THE SIZE OF THE INCOMING BUFFER BEFORE CALLING THIS METHOD
+        if (numCols < 0 && numRows < 0) {
+            return;
         }
 
-        // CREATE THE GPU SIDE TEXTURE BUFFER TO HOLD THE INCOMING VIDEO
-        videoTexture = new QOpenGLTexture(QOpenGLTexture::Target2D);
-        videoTexture->setSize(numCols, numRows);
-        videoTexture->setFormat(QOpenGLTexture::RGBA32F);
-        videoTexture->setWrapMode(QOpenGLTexture::ClampToBorder);
-        videoTexture->setMinificationFilter(QOpenGLTexture::Nearest);
-        videoTexture->setMagnificationFilter(QOpenGLTexture::Nearest);
-        videoTexture->allocateStorage();
+        // REPORT FRAME RATE TO THE CONSOLE
+        counter++;
+        if (counter >= 30) {
+            qDebug() << QString("%1 fps").arg(1000.0 * (float)counter / (float)time.elapsed());
+            time.restart();
+            counter = 0;
+        }
+
+        // MAKE THIS THE CURRENT OPENGL CONTEXT
+        makeCurrent();
+
+        // SEE IF WE NEED A NEW TEXTURE TO HOLD THE INCOMING VIDEO FRAME
+        if (!videoTexture || videoTexture->width() != numCols || videoTexture->height() != numRows) {
+            if (videoTexture) {
+                delete videoTexture;
+            }
+
+            // CREATE THE GPU SIDE TEXTURE BUFFER TO HOLD THE INCOMING VIDEO
+            videoTexture = new QOpenGLTexture(QOpenGLTexture::Target2D);
+            videoTexture->setSize(numCols, numRows);
+            videoTexture->setFormat(QOpenGLTexture::RGBA32F);
+            videoTexture->setWrapMode(QOpenGLTexture::ClampToBorder);
+            videoTexture->setMinificationFilter(QOpenGLTexture::Nearest);
+            videoTexture->setMagnificationFilter(QOpenGLTexture::Nearest);
+            videoTexture->allocateStorage();
+        }
+
+        // UPLOAD THE CPU BUFFER TO THE GPU TEXTURE
+        // COPY FRAME BUFFER TEXTURE FROM GPU TO LOCAL CPU BUFFER
+        videoTexture->setData(pixelFormat, pixelType, (const void *)buffer);
+
+        // PROCESS THE TEXTURE
+        process();
+
+        // UPDATE THE USER DISPLAY
+        update();
+    } else {
+        localBuffer = buffer;
     }
-
-    // UPLOAD THE CPU BUFFER TO THE GPU TEXTURE
-    // COPY FRAME BUFFER TEXTURE FROM GPU TO LOCAL CPU BUFFER
-    videoTexture->setData(pixelFormat, pixelType, (const void *)buffer);
-
-    // PROCESS THE TEXTURE
-    process();
-
-    // UPDATE THE USER DISPLAY
-    update();
 }
 
 /****************************************************************************/
@@ -103,54 +107,56 @@ void LAUVideoGLWidget::setFrame(const QVideoFrame &frame)
 {
     QVideoFrame localFrame = frame;
 
-    if (localFrame.map(QAbstractVideoBuffer::ReadOnly)) {
-        // REPORT FRAME RATE TO THE CONSOLE
-        counter++;
-        if (counter >= 30) {
-            qDebug() << QString("%1 fps").arg(1000.0 * (float)counter / (float)time.elapsed());
-            time.restart();
-            counter = 0;
-        }
-
-        makeCurrent();
-
-        // SEE IF WE NEED A NEW TEXTURE TO HOLD THE INCOMING VIDEO FRAME
-        if (!videoTexture || videoTexture->width() != localFrame.width() || videoTexture->height() != localFrame.height()) {
-            if (videoTexture) {
-                delete videoTexture;
+    if (wasInitialized()){
+        if (localFrame.map(QAbstractVideoBuffer::ReadOnly)) {
+            // REPORT FRAME RATE TO THE CONSOLE
+            counter++;
+            if (counter >= 30) {
+                qDebug() << QString("%1 fps").arg(1000.0 * (float)counter / (float)time.elapsed());
+                time.restart();
+                counter = 0;
             }
 
-            // CREATE THE GPU SIDE TEXTURE BUFFER TO HOLD THE INCOMING VIDEO
-            videoTexture = new QOpenGLTexture(QOpenGLTexture::Target2D);
-            videoTexture->setSize(localFrame.width(), localFrame.height());
-            videoTexture->setFormat(QOpenGLTexture::RGBA32F);
-            videoTexture->setWrapMode(QOpenGLTexture::ClampToBorder);
-            videoTexture->setMinificationFilter(QOpenGLTexture::Nearest);
-            videoTexture->setMagnificationFilter(QOpenGLTexture::Nearest);
-            videoTexture->allocateStorage();
-        }
+            makeCurrent();
 
-        // UPLOAD THE CPU BUFFER TO THE GPU TEXTURE
-        // COPY FRAME BUFFER TEXTURE FROM GPU TO LOCAL CPU BUFFER
-        QVideoFrame::PixelFormat format = localFrame.pixelFormat();
-        if (format == QVideoFrame::Format_ARGB32) {
-            unsigned int bytesPerSample = localFrame.bytesPerLine() / localFrame.width() / 4;
-            if (bytesPerSample == sizeof(unsigned char)) {
-                videoTexture->setData(QOpenGLTexture::BGRA, QOpenGLTexture::UInt8, (const void *)localFrame.bits());
+            // SEE IF WE NEED A NEW TEXTURE TO HOLD THE INCOMING VIDEO FRAME
+            if (!videoTexture || videoTexture->width() != localFrame.width() || videoTexture->height() != localFrame.height()) {
+                if (videoTexture) {
+                    delete videoTexture;
+                }
+
+                // CREATE THE GPU SIDE TEXTURE BUFFER TO HOLD THE INCOMING VIDEO
+                videoTexture = new QOpenGLTexture(QOpenGLTexture::Target2D);
+                videoTexture->setSize(localFrame.width(), localFrame.height());
+                videoTexture->setFormat(QOpenGLTexture::RGBA32F);
+                videoTexture->setWrapMode(QOpenGLTexture::ClampToBorder);
+                videoTexture->setMinificationFilter(QOpenGLTexture::Nearest);
+                videoTexture->setMagnificationFilter(QOpenGLTexture::Nearest);
+                videoTexture->allocateStorage();
             }
-        } else if (format == QVideoFrame::Format_RGB32) {
-            unsigned int bytesPerSample = localFrame.bytesPerLine() / localFrame.width() / 4;
-            if (bytesPerSample == sizeof(unsigned char)) {
-                videoTexture->setData(QOpenGLTexture::BGRA, QOpenGLTexture::UInt8, (const void *)localFrame.bits());
+
+            // UPLOAD THE CPU BUFFER TO THE GPU TEXTURE
+            // COPY FRAME BUFFER TEXTURE FROM GPU TO LOCAL CPU BUFFER
+            QVideoFrame::PixelFormat format = localFrame.pixelFormat();
+            if (format == QVideoFrame::Format_ARGB32) {
+                unsigned int bytesPerSample = localFrame.bytesPerLine() / localFrame.width() / 4;
+                if (bytesPerSample == sizeof(unsigned char)) {
+                    videoTexture->setData(QOpenGLTexture::BGRA, QOpenGLTexture::UInt8, (const void *)localFrame.bits());
+                }
+            } else if (format == QVideoFrame::Format_RGB32) {
+                unsigned int bytesPerSample = localFrame.bytesPerLine() / localFrame.width() / 4;
+                if (bytesPerSample == sizeof(unsigned char)) {
+                    videoTexture->setData(QOpenGLTexture::BGRA, QOpenGLTexture::UInt8, (const void *)localFrame.bits());
+                }
             }
+            localFrame.unmap();
+
+            // PROCESS THE TEXTURE
+            process();
+
+            // UPDATE THE USER DISPLAY
+            update();
         }
-        localFrame.unmap();
-
-        // PROCESS THE TEXTURE
-        process();
-
-        // UPDATE THE USER DISPLAY
-        update();
     }
 }
 
@@ -160,56 +166,54 @@ void LAUVideoGLWidget::setFrame(const QVideoFrame &frame)
 void LAUVideoGLWidget::setFrame(QImage frame)
 {
     if (frame.isNull() == false) {
-        // REPORT FRAME RATE TO THE CONSOLE
-        counter++;
-        if (counter >= 30) {
-            qDebug() << QString("%1 fps").arg(1000.0 * (float)counter / (float)time.elapsed());
-            time.restart();
-            counter = 0;
-        }
-
-        makeCurrent();
-
-        // SEE IF WE NEED A NEW TEXTURE TO HOLD THE INCOMING VIDEO FRAME
-        if (!videoTexture || videoTexture->width() != frame.width() || videoTexture->height() != frame.height()) {
-            if (videoTexture) {
-                delete videoTexture;
+        if (wasInitialized()){
+            // REPORT FRAME RATE TO THE CONSOLE
+            counter++;
+            if (counter >= 30) {
+                qDebug() << QString("%1 fps").arg(1000.0 * (float)counter / (float)time.elapsed());
+                time.restart();
+                counter = 0;
             }
 
-            // CREATE THE GPU SIDE TEXTURE BUFFER TO HOLD THE INCOMING VIDEO
-            videoTexture = new QOpenGLTexture(QOpenGLTexture::Target2D);
-            videoTexture->setSize(frame.width(), frame.height());
-            videoTexture->setFormat(QOpenGLTexture::RGBA32F);
-            videoTexture->setWrapMode(QOpenGLTexture::ClampToBorder);
-            videoTexture->setMinificationFilter(QOpenGLTexture::Nearest);
-            videoTexture->setMagnificationFilter(QOpenGLTexture::Nearest);
-            videoTexture->allocateStorage();
+            makeCurrent();
 
-            qDebug() << videoTexture->width() << videoTexture->height();
-        }
+            // SEE IF WE NEED A NEW TEXTURE TO HOLD THE INCOMING VIDEO FRAME
+            if (!videoTexture || videoTexture->width() != frame.width() || videoTexture->height() != frame.height()) {
+                if (videoTexture) {
+                    delete videoTexture;
+                }
 
-        // UPLOAD THE CPU BUFFER TO THE GPU TEXTURE
-        // COPY FRAME BUFFER TEXTURE FROM GPU TO LOCAL CPU BUFFER
-        QImage::Format format = frame.format();
-        if (format == QImage::Format_ARGB32) {
-            unsigned int bytesPerSample = frame.bytesPerLine() / frame.width() / 4;
-            if (bytesPerSample == sizeof(unsigned char)) {
-                videoTexture->setData(QOpenGLTexture::BGRA, QOpenGLTexture::UInt8, (const void *)frame.bits());
+                // CREATE THE GPU SIDE TEXTURE BUFFER TO HOLD THE INCOMING VIDEO
+                videoTexture = new QOpenGLTexture(QOpenGLTexture::Target2D);
+                videoTexture->setSize(frame.width(), frame.height());
+                videoTexture->setFormat(QOpenGLTexture::RGBA32F);
+                videoTexture->setWrapMode(QOpenGLTexture::ClampToBorder);
+                videoTexture->setMinificationFilter(QOpenGLTexture::Nearest);
+                videoTexture->setMagnificationFilter(QOpenGLTexture::Nearest);
+                videoTexture->allocateStorage();
+
+                qDebug() << videoTexture->width() << videoTexture->height();
             }
+
+            // UPLOAD THE IMAGE TO THE GPU TEXTURE
+            videoTexture->setData(frame);
+
+            // PROCESS THE TEXTURE
+            process();
+
+            // UPDATE THE USER DISPLAY
+            update();
+        } else {
+            // KEEP A COPY OF THE IMAGE UNTIL THIS GLCONTEXT IS INITIALIZED
+            localImage = frame;
         }
-
-        // PROCESS THE TEXTURE
-        process();
-
-        // UPDATE THE USER DISPLAY
-        update();
     }
 }
 
 /****************************************************************************/
 /****************************************************************************/
 /****************************************************************************/
-void LAUVideoGLWidget::initialize()
+void LAUVideoGLWidget::initializeGL()
 {
     // INITIALIZE OUR GL CALLS AND SET THE CLEAR COLOR
     initializeOpenGLFunctions();
@@ -278,12 +282,23 @@ void LAUVideoGLWidget::initialize()
     program.addShaderFromSourceFile(QOpenGLShader::Fragment, ":/shaders/Shaders/displayRGBVideo.frag");
     program.link();
     setlocale(LC_ALL, "");
+
+    // CALL THE SUBCLASS INITIALIZE FUNCTION
+    initialize();
+
+    if (localBuffer){
+        setFrame(localBuffer);
+    } else if (localVideoFrame.isValid()){
+        setFrame(localVideoFrame);
+    } else if (localImage.isNull() == false){
+        setFrame(localImage);
+    }
 }
 
 /****************************************************************************/
 /****************************************************************************/
 /****************************************************************************/
-void LAUVideoGLWidget::resize(int w, int h)
+void LAUVideoGLWidget::resizeGL(int w, int h)
 {
     // Get the Desktop Widget so that we can get information about multiple monitors connected to the system.
     QDesktopWidget *dkWidget = QApplication::desktop();
@@ -291,6 +306,9 @@ void LAUVideoGLWidget::resize(int w, int h)
     qreal devicePixelRatio = screenList[dkWidget->screenNumber(this)]->devicePixelRatio();
     localHeight = h * devicePixelRatio;
     localWidth = w * devicePixelRatio;
+
+    // CALL THE SUBCLASS VIRTUAL FUNCTION HERE
+    resize(w, h);
 }
 
 /****************************************************************************/

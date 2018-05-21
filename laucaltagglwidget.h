@@ -45,6 +45,8 @@
 #include <QCheckBox>
 #include <QFormLayout>
 #include <QMouseEvent>
+#include <QPushButton>
+#include <QDialogButtonBox>
 
 #include "opencv2/core/core.hpp"
 #include "opencv2/calib3d/calib3d.hpp"
@@ -249,6 +251,7 @@ class LAUCalTagWidget : public QWidget
     Q_OBJECT
 
 public:
+    LAUCalTagWidget(QImage image, QWidget *parent = NULL);
     LAUCalTagWidget(QWidget *parent = NULL);
 
     bool isValid() const
@@ -330,6 +333,53 @@ private:
     QSpinBox *maxRegionArea;     // MAXIMUM REGION AREA
     QSpinBox *minBoxCount;       // MINIMUM BOX AREA
     QCheckBox *flipCalTagsFlag;  // IS THE TARGET BACKLIT?
+
+    void initialize();
+};
+
+/****************************************************************************/
+/****************************************************************************/
+/****************************************************************************/
+class LAUCalTagDialog : public QDialog
+{
+    Q_OBJECT
+
+public:
+    LAUCalTagDialog(QImage image, QWidget *parent = 0)
+    {
+        if (image.isNull()){
+            QSettings settings;
+            QString directory = settings.value("LAUCalTagDialog::lastUsedDirectory", QStandardPaths::writableLocation(QStandardPaths::DocumentsLocation)).toString();
+            QString filename = QFileDialog::getOpenFileName(0, QString("Load image from disk"), directory, QString("*.tif *.tiff *.bmp *.jpg *.jpeg"));
+            if (filename.isEmpty() == false) {
+                settings.setValue("LAUCalTagDialog::lastUsedDirectory", QFileInfo(filename).absolutePath());
+            } else {
+                return;
+            }
+            image = QImage(filename);
+        }
+
+        this->setLayout(new QVBoxLayout());
+        this->layout()->setContentsMargins(0, 0, 0, 0);
+        widget = new LAUCalTagWidget(image);
+        this->layout()->addWidget(widget);
+
+        QDialogButtonBox *buttonBox = new QDialogButtonBox(QDialogButtonBox::Ok | QDialogButtonBox::Cancel);
+        connect(buttonBox->button(QDialogButtonBox::Ok), SIGNAL(clicked()), this, SLOT(accept()));
+        connect(buttonBox->button(QDialogButtonBox::Cancel), SIGNAL(clicked()), this, SLOT(reject()));
+        this->layout()->addWidget(buttonBox);
+    }
+
+protected:
+    void accept(){
+        LAUMemoryObject object = widget->grabImage();
+        if (object.save(QString())){
+            QDialog::accept();
+        }
+    }
+
+private:
+    LAUCalTagWidget *widget;
 };
 
 #endif // LAUCALTAGGLWIDGET_H

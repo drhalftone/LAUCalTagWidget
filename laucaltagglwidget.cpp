@@ -1749,7 +1749,7 @@ bool LAUCalTagGLWidget::checkBitCode(int code, cv::Point2f *pt)
     for (int i = 0; i < 20; i++) {
         for (int j = 13; j >= 0; j--) {
             if (code == realBitCodes[i][j]) {
-                *pt = cv::Point2f((float)(20 - i) - 14.0f, (float)(13 - j) - 7.0f);
+                *pt = cv::Point2f(7.0f - (float)(13 - j), 14.0f - (float)(20 - i));
                 return (true);
             } else if (code > realBitCodes[i][j]) {
                 return (false);

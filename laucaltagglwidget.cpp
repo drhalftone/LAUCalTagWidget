@@ -663,8 +663,10 @@ void LAUCalTagGLWidget::process()
 
         // DOWNLOAD THE RESULTING BINARY TEXTURE TO OUR MEMORY BUFFER FOR FURTHER PROCESSING
         glBindTexture(GL_TEXTURE_2D, frameBufferObjectB->texture());
+        glPixelStorei(GL_PACK_ALIGNMENT, 1);
         glGetTexImage(GL_TEXTURE_2D, 0, GL_RED, GL_UNSIGNED_BYTE, (unsigned char *)memoryObject[0].constData());
         glBindTexture(GL_TEXTURE_2D, frameBufferObjectC->texture());
+        glPixelStorei(GL_PACK_ALIGNMENT, 1);
         glGetTexImage(GL_TEXTURE_2D, 0, GL_RED, GL_UNSIGNED_BYTE, (unsigned char *)memoryObject[1].constData());
 #ifdef QT_DEBUG
         glGetTexImage(GL_TEXTURE_2D, 0, GL_RGB, GL_UNSIGNED_BYTE, (unsigned char *)debugObject.constData());
@@ -1221,6 +1223,9 @@ cv::Mat LAUCalTagGLWidget::detectCalTagGrid(bool *okay)
             }
         }
 #endif
+        // ORGANIZE THE DETECTED SQUARES SO THEY ALL RUN THE SAME ORIENTATION
+        squares = organizeSquares(squares);
+
         // DECODE THE CALTAG SQUARES
         cv::vector<cv::vector<cv::Point2f>> coordinates = findPattern(inImage, squares);
 
@@ -1242,8 +1247,6 @@ cv::Mat LAUCalTagGLWidget::detectCalTagGrid(bool *okay)
             for (unsigned int j = 0; j < 4; j++) {
                 // SEE IF THIS COORDINATE IS A NAN
                 if (qIsNaN(coordinates[i][j].x * coordinates[i][j].y) == false) {
-                    qDebug() << squares[i][j].x << squares[i][j].y << coordinates[i][j].x << coordinates[i][j].y;
-
                     fmPoints.push_back(squares[i][j]);
                     toPoints.push_back(coordinates[i][j]);
                 }
@@ -1523,9 +1526,7 @@ cv::vector<cv::vector<cv::Point2f>> LAUCalTagGLWidget::findSaddles(cv::vector<cv
 /****************************************************************************/
 cv::vector<cv::vector<cv::Point2f>> LAUCalTagGLWidget::findPattern(cv::Mat image, cv::vector<cv::vector<cv::Point2f>> squares)
 {
-    // ROTATE ALL SQUARES INTO A SPECIFIC ORDER
-    squares = organizeSquares(squares);
-
+    // CREATE OUTPUT DATA STRUCTURE
     cv::vector<cv::vector<cv::Point2f>> outputSquares;
 
     // MAKE LIST OF SQUARE SPACE COORDINATES FOR A SINGLE SQUARE
@@ -1635,39 +1636,39 @@ cv::vector<cv::vector<cv::Point2f>> LAUCalTagGLWidget::findPattern(cv::Mat image
                             hist[3]++;
                             validCodeCounter++;
                             cv::vector<cv::Point2f> square;
-                            square.push_back(sqPoints[0] + point);
                             square.push_back(sqPoints[3] + point);
                             square.push_back(sqPoints[2] + point);
                             square.push_back(sqPoints[1] + point);
+                            square.push_back(sqPoints[0] + point);
                             outputSquares.push_back(square);
                         }
                     } else {
                         hist[2]++;
                         validCodeCounter++;
                         cv::vector<cv::Point2f> square;
-                        square.push_back(sqPoints[3] + point);
                         square.push_back(sqPoints[2] + point);
                         square.push_back(sqPoints[1] + point);
                         square.push_back(sqPoints[0] + point);
+                        square.push_back(sqPoints[3] + point);
                         outputSquares.push_back(square);
                     }
                 } else {
                     hist[1]++;
                     validCodeCounter++;
                     cv::vector<cv::Point2f> square;
-                    square.push_back(sqPoints[2] + point);
                     square.push_back(sqPoints[1] + point);
                     square.push_back(sqPoints[0] + point);
                     square.push_back(sqPoints[3] + point);
+                    square.push_back(sqPoints[2] + point);
                     outputSquares.push_back(square);
                 }
             } else {
                 hist[0]++;
                 cv::vector<cv::Point2f> square;
-                square.push_back(sqPoints[1] + point);
                 square.push_back(sqPoints[0] + point);
                 square.push_back(sqPoints[3] + point);
                 square.push_back(sqPoints[2] + point);
+                square.push_back(sqPoints[1] + point);
                 outputSquares.push_back(square);
             }
         } else {
@@ -1700,39 +1701,39 @@ cv::vector<cv::vector<cv::Point2f>> LAUCalTagGLWidget::findPattern(cv::Mat image
                             hist[3]++;
                             validCodeCounter++;
                             cv::vector<cv::Point2f> square;
-                            square.push_back(sqPoints[2] + point);
-                            square.push_back(sqPoints[3] + point);
                             square.push_back(sqPoints[0] + point);
                             square.push_back(sqPoints[1] + point);
+                            square.push_back(sqPoints[2] + point);
+                            square.push_back(sqPoints[3] + point);
                             outputSquares.push_back(square);
                         }
                     } else {
                         hist[2]++;
                         validCodeCounter++;
                         cv::vector<cv::Point2f> square;
-                        square.push_back(sqPoints[1] + point);
-                        square.push_back(sqPoints[2] + point);
                         square.push_back(sqPoints[3] + point);
                         square.push_back(sqPoints[0] + point);
+                        square.push_back(sqPoints[1] + point);
+                        square.push_back(sqPoints[2] + point);
                         outputSquares.push_back(square);
                     }
                 } else {
                     hist[1]++;
                     validCodeCounter++;
                     cv::vector<cv::Point2f> square;
-                    square.push_back(sqPoints[0] + point);
-                    square.push_back(sqPoints[1] + point);
                     square.push_back(sqPoints[2] + point);
                     square.push_back(sqPoints[3] + point);
+                    square.push_back(sqPoints[0] + point);
+                    square.push_back(sqPoints[1] + point);
                     outputSquares.push_back(square);
                 }
             } else {
                 hist[0]++;
                 cv::vector<cv::Point2f> square;
-                square.push_back(sqPoints[3] + point);
-                square.push_back(sqPoints[0] + point);
                 square.push_back(sqPoints[1] + point);
                 square.push_back(sqPoints[2] + point);
+                square.push_back(sqPoints[3] + point);
+                square.push_back(sqPoints[0] + point);
                 outputSquares.push_back(square);
             }
         }
@@ -1783,6 +1784,19 @@ cv::vector<cv::vector<cv::Point2f>> LAUCalTagGLWidget::organizeSquares(cv::vecto
         square.push_back(squares[n][indices[3]]);
         outputSquares.push_back(square);
     }
+
+    // PRINT OUT A REPORT ON HOW IMAGE SQUARES ARE ALIGNED AND HOW THEY GET MAPPED TO CALTAG SQUARES
+    QFile file(QString("/tmp/organizeReport.txt"));
+    if (file.open(QIODevice::WriteOnly)) {
+        QTextStream stream(&file);
+        for (unsigned int n = 0; n < squares.size(); n++) {
+            for (int c = 0; c < 4; c++) {
+                stream << QString("%1, %2, %3, %4\n").arg(squares[n][c].x).arg(squares[n][c].y).arg(outputSquares[n][c].x).arg(outputSquares[n][c].y);
+            }
+        }
+        file.close();
+    }
+
     return (outputSquares);
 }
 

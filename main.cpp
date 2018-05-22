@@ -50,13 +50,14 @@ int main(int argc, char *argv[])
     format.setRenderableType(QSurfaceFormat::OpenGL);
     QSurfaceFormat::setDefaultFormat(format);
 
-    //LAUWebCameraDialog w(QCamera::CaptureVideo);
-    //if (w.isValid()) {
-    //    return w.exec();
-    //}
-
+#ifndef DONTCOMPILE
+    LAUWebCameraDialog w(QCamera::CaptureVideo);
+    if (w.isValid()) {
+        return w.exec();
+    }
+#else
     LAUCalTagDialog w((QImage()));
     return w.exec();
-
+#endif
     return (0);
 }

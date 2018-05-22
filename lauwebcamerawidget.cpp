@@ -69,14 +69,14 @@ LAUWebCameraWidget::LAUWebCameraWidget(QCamera::CaptureMode capture, QWidget *pa
     if (camera) {
         surface = new LAUVideoSurface();
         surface->setLabel(label);
-
-        //QCameraViewfinderSettings set = camera->viewfinderSettings();
-        //set.setResolution(LAUWEBCAMERAWIDGETWIDTH, LAUWEBCAMERAWIDGETHEIGHT);
-        //set.setMaximumFrameRate(60.0f);
-        //set.setMinimumFrameRate(30.0f);
-        //set.setPixelFormat(QVideoFrame::Format_ARGB32);
-        //camera->setViewfinderSettings(set);
-
+#ifdef Q_OS_MAC
+        QCameraViewfinderSettings set = camera->viewfinderSettings();
+        set.setResolution(LAUWEBCAMERAWIDGETWIDTH, LAUWEBCAMERAWIDGETHEIGHT);
+        set.setMaximumFrameRate(60.0f);
+        set.setMinimumFrameRate(30.0f);
+        set.setPixelFormat(QVideoFrame::Format_ARGB32);
+        camera->setViewfinderSettings(set);
+#endif
         camera->setViewfinder(surface);
         camera->setCaptureMode(mode);
 

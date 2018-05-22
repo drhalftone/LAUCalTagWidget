@@ -1226,14 +1226,15 @@ cv::Mat LAUCalTagGLWidget::detectCalTagGrid(bool *okay)
         cv::vector<cv::Point2f> toPoints, fmPoints;
         for (unsigned int i = 0; i < coordinates.size(); i++) {
             for (unsigned int j = 0; j < 4; j++) {
+                // SEE IF THIS COORDINATE IS A NAN
                 if (coordinates[i][j] == coordinates[i][j]) {
                     // FILTER POINTS LISTS TO ELIMINATE DUPLICATES
                     bool flag = true;
-                    for (int n = 0; n < (int)fmPoints.size(); n++) {
-                        if (fmPoints[n] == squares[i][j]) {
-                            flag = false;
-                        }
-                    }
+                    //for (int n = 0; n < (int)fmPoints.size(); n++) {
+                    //    if (fmPoints[n] == squares[i][j]) {
+                    //        flag = false;
+                    //    }
+                    //}
                     if (flag) {
                         fmPoints.push_back(squares[i][j]);
                         toPoints.push_back(coordinates[i][j]);
@@ -1515,6 +1516,9 @@ cv::vector<cv::vector<cv::Point2f>> LAUCalTagGLWidget::findSaddles(cv::vector<cv
 /****************************************************************************/
 cv::vector<cv::vector<cv::Point2f>> LAUCalTagGLWidget::findPattern(cv::Mat image, cv::vector<cv::vector<cv::Point2f>> squares)
 {
+    // ROTATE ALL SQUARES INTO A SPECIFIC ORDER
+    squares = organizeSquares(squares);
+
     cv::vector<cv::vector<cv::Point2f>> outputSquares;
 
     // MAKE LIST OF SQUARE SPACE COORDINATES FOR A SINGLE SQUARE
@@ -1551,6 +1555,8 @@ cv::vector<cv::vector<cv::Point2f>> LAUCalTagGLWidget::findPattern(cv::Mat image
     for (unsigned int i = 0; i < 16; i++) {
         decodingMatrix.at<int>(i / 4, i % 4) = qRound(pow(2.0, (double)i));
     }
+
+    int hist[4] = { 0, 0, 0, 0};
 
     int validCodeCounter = 0;
     for (unsigned int n = 0; n < squares.size(); n++) {
@@ -1619,6 +1625,7 @@ cv::vector<cv::vector<cv::Point2f>> LAUCalTagGLWidget::findPattern(cv::Mat image
                             square.push_back(cv::Point2f(NAN, NAN));
                             outputSquares.push_back(square);
                         } else {
+                            hist[3]++;
                             validCodeCounter++;
                             cv::vector<cv::Point2f> square;
                             square.push_back(sqPoints[3] + point);
@@ -1628,6 +1635,7 @@ cv::vector<cv::vector<cv::Point2f>> LAUCalTagGLWidget::findPattern(cv::Mat image
                             outputSquares.push_back(square);
                         }
                     } else {
+                        hist[2]++;
                         validCodeCounter++;
                         cv::vector<cv::Point2f> square;
                         square.push_back(sqPoints[0] + point);
@@ -1637,6 +1645,7 @@ cv::vector<cv::vector<cv::Point2f>> LAUCalTagGLWidget::findPattern(cv::Mat image
                         outputSquares.push_back(square);
                     }
                 } else {
+                    hist[1]++;
                     validCodeCounter++;
                     cv::vector<cv::Point2f> square;
                     square.push_back(sqPoints[1] + point);
@@ -1646,6 +1655,7 @@ cv::vector<cv::vector<cv::Point2f>> LAUCalTagGLWidget::findPattern(cv::Mat image
                     outputSquares.push_back(square);
                 }
             } else {
+                hist[0]++;
                 cv::vector<cv::Point2f> square;
                 square.push_back(sqPoints[2] + point);
                 square.push_back(sqPoints[3] + point);
@@ -1680,6 +1690,7 @@ cv::vector<cv::vector<cv::Point2f>> LAUCalTagGLWidget::findPattern(cv::Mat image
                             square.push_back(cv::Point2f(NAN, NAN));
                             outputSquares.push_back(square);
                         } else {
+                            hist[3]++;
                             validCodeCounter++;
                             cv::vector<cv::Point2f> square;
                             square.push_back(sqPoints[2] + point);
@@ -1689,6 +1700,7 @@ cv::vector<cv::vector<cv::Point2f>> LAUCalTagGLWidget::findPattern(cv::Mat image
                             outputSquares.push_back(square);
                         }
                     } else {
+                        hist[2]++;
                         validCodeCounter++;
                         cv::vector<cv::Point2f> square;
                         square.push_back(sqPoints[3] + point);
@@ -1698,6 +1710,7 @@ cv::vector<cv::vector<cv::Point2f>> LAUCalTagGLWidget::findPattern(cv::Mat image
                         outputSquares.push_back(square);
                     }
                 } else {
+                    hist[1]++;
                     validCodeCounter++;
                     cv::vector<cv::Point2f> square;
                     square.push_back(sqPoints[0] + point);
@@ -1707,14 +1720,73 @@ cv::vector<cv::vector<cv::Point2f>> LAUCalTagGLWidget::findPattern(cv::Mat image
                     outputSquares.push_back(square);
                 }
             } else {
+                hist[0]++;
                 cv::vector<cv::Point2f> square;
                 square.push_back(sqPoints[1] + point);
-                square.push_back(sqPoints[0] + point);
-                square.push_back(sqPoints[3] + point);
                 square.push_back(sqPoints[2] + point);
+                square.push_back(sqPoints[3] + point);
+                square.push_back(sqPoints[0] + point);
                 outputSquares.push_back(square);
             }
         }
+    }
+
+    // PRINT OUT A REPORT ON HOW IMAGE SQUARES ARE ALIGNED AND HOW THEY GET MAPPED TO CALTAG SQUARES
+    QFile file(QString("/tmp/squaresReport.txt"));
+    if (file.open(QIODevice::WriteOnly)) {
+        QTextStream stream(&file);
+        for (unsigned int n = 0; n < squares.size(); n++) {
+            for (int c = 0; c < 4; c++) {
+                stream << QString("%1, %2, %3, %4\n").arg(squares[n][c].x).arg(squares[n][c].y).arg(outputSquares[n][c].x).arg(outputSquares[n][c].y);
+            }
+        }
+        file.close();
+    }
+    qDebug() << "Orientations:" << hist[0] << hist[1] << hist[2] << hist[3];
+
+    // RETURN THE MATCHING CALTAG SQUARE COORDINATES
+    return (outputSquares);
+}
+
+/****************************************************************************/
+/****************************************************************************/
+/****************************************************************************/
+cv::vector<cv::vector<cv::Point2f>> LAUCalTagGLWidget::organizeSquares(cv::vector<cv::vector<cv::Point2f>> squares)
+{
+    cv::vector<cv::vector<cv::Point2f>> outputSquares;
+
+    for (unsigned int n = 0; n < squares.size(); n++) {
+        cv::Point2f center = (squares[n][0] + squares[n][1] + squares[n][2] + squares[n][3]) / 4.0f;
+        float angles[4];
+        int indices[4] = { 0, 1, 2, 3 };
+
+        angles[0] = atan2(squares[n][0].y - center.y, squares[n][0].x - center.x);
+        angles[1] = atan2(squares[n][1].y - center.y, squares[n][1].x - center.x);
+        angles[2] = atan2(squares[n][2].y - center.y, squares[n][2].x - center.x);
+        angles[3] = atan2(squares[n][3].y - center.y, squares[n][3].x - center.x);
+
+        // SORT ANGLES
+        for (int m = 0; m < 3; m++) {
+            for (int n = m + 1; n < 4; n++) {
+                if (angles[m] > angles[n]) {
+                    float a = angles[m];
+                    angles[m] = angles[n];
+                    angles[n] = a;
+
+                    int b = indices[m];
+                    indices[m] = indices[n];
+                    indices[n] = b;
+                }
+            }
+        }
+
+        // RECONSTRUCT SQUARE IN CLOCKWISE ORDER
+        cv::vector<cv::Point2f> square;
+        square.push_back(squares[n][indices[0]]);
+        square.push_back(squares[n][indices[1]]);
+        square.push_back(squares[n][indices[2]]);
+        square.push_back(squares[n][indices[3]]);
+        outputSquares.push_back(square);
     }
     return (outputSquares);
 }
@@ -1772,9 +1844,19 @@ cv::vector<cv::Point2f> LAUCalTagGLWidget::removeOutlierPoints(cv::vector<cv::Po
         return (toPoints);
     }
 
+    // PRINT OUT A REPORT ON HOW IMAGE SQUARES ARE ALIGNED AND HOW THEY GET MAPPED TO CALTAG SQUARES
+    QFile file(QString("/tmp/outlierReport.txt"));
+    if (file.open(QIODevice::WriteOnly)) {
+        QTextStream stream(&file);
+        for (unsigned int n = 0; n < fmPoints.size(); n++) {
+            stream << QString("%1, %2, %3, %4\n").arg(fmPoints[n].x).arg(fmPoints[n].y).arg(toPoints[n].x).arg(toPoints[n].y);
+        }
+        file.close();
+    }
+
     cv::Mat transform;
     cv::vector<cv::Point2f> nwPoints = fmPoints;
-    unsigned int numIterations = fmPoints.size() * 0.05;
+    unsigned int numIterations = fmPoints.size() * 0.15;
     for (unsigned int iter = 0; iter < numIterations; iter++) {
         // GET THE BEST MAPPING BASED ON THE CURRENT SET OF POINTS
         transform = findBestLinearMapping(fmPoints, toPoints);

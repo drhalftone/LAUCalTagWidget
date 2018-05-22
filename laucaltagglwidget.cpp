@@ -738,7 +738,7 @@ void LAUCalTagGLWidget::paint()
                     if (quadIndexBuffer.bind()) {
                         // SET THE ACTIVE TEXTURE ON THE GPU
                         glActiveTexture(GL_TEXTURE0);
-#ifdef QT_DEBUG
+#ifndef QT_DEBUG
                         glBindTexture(GL_TEXTURE_2D, frameBufferObjectB->texture());
 #else
                         videoTexture->bind();
@@ -1841,7 +1841,6 @@ bool LAUCalTagGLWidget::checkBitCode(int code, cv::Point2f *pt)
     }
     return (false);
 }
-
 
 /******************************************************************************/
 /******************************************************************************/

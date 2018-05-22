@@ -201,10 +201,10 @@ private:
     void sobel(QOpenGLFramebufferObject *fboA, QOpenGLFramebufferObject *fboB);
     void cleanUp(QOpenGLFramebufferObject *fboA, QOpenGLFramebufferObject *fboB);
     void dilationErosion(QOpenGLFramebufferObject *fboA, QOpenGLFramebufferObject *fboB);
+    void removeOutlierPoints(cv::vector<cv::Point2f> &fmPoints, cv::vector<cv::Point2f> &toPoints);
 
     cv::Mat cleanStrays(cv::Mat inImage);
     cv::vector<cv::RotatedRect> regionArea(cv::Mat inImage);
-    cv::vector<cv::Point2f> removeOutlierPoints(cv::vector<cv::Point2f> fmPoints, cv::vector<cv::Point2f> toPoints);
     cv::vector<cv::vector<cv::Point2f>> findSaddles(cv::vector<cv::RotatedRect> rotatedRects);
     cv::vector<cv::vector<cv::Point2f>> findPattern(cv::Mat image, cv::vector<cv::vector<cv::Point2f>> squares);
     cv::vector<cv::vector<cv::Point2f>> organizeSquares(cv::vector<cv::vector<cv::Point2f>> squares);

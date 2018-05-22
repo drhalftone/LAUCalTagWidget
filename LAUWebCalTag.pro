@@ -68,7 +68,7 @@ unix:macx {
     CONFIG        += c++11
     INCLUDEPATH   += /usr/local/opt/opencv@3/include /usr/local/include
     DEPENDPATH    += /usr/local/opt/opencv@3/include /usr/local/include
-    LIBS          += -L/usr/local/opt/opencv@3/lib -lopencv_core -lopencv_objdetect \
+    LIBS          += -L/usr/local/opt/opencv@3/lib -lopencv_core -lopencv_objdetect -lopencv_imgcodecs \
                      -lopencv_imgproc -lopencv_calib3d -lopencv_highgui -lopencv_ml \
                      /usr/local/lib/libtiff.5.dylib
 }

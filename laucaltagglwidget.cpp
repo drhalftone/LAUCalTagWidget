@@ -1208,6 +1208,8 @@ cv::Mat LAUCalTagGLWidget::detectCalTagGrid(bool *okay)
 #endif
     cv::vector<cv::RotatedRect> rotatedRects = regionArea(sbImage);
 
+    cv::imwrite("/tmp/sbImage.tif", sbImage);
+
     // MAKE SURE WE HAVE ENOUGH DETECTED RECTANGLES
     if (rotatedRects.size() > (unsigned long)minBoxCount) {
         // GET A GOOD APPROXIMATION OF WHERE THE SADDLE POINTS ARE
@@ -1222,29 +1224,34 @@ cv::Mat LAUCalTagGLWidget::detectCalTagGrid(bool *okay)
         // DECODE THE CALTAG SQUARES
         cv::vector<cv::vector<cv::Point2f>> coordinates = findPattern(inImage, squares);
 
+        // PRINT OUT A REPORT ON HOW IMAGE SQUARES ARE ALIGNED AND HOW THEY GET MAPPED TO CALTAG SQUARES
+        QFile file(QString("/tmp/squaresReport.txt"));
+        if (file.open(QIODevice::WriteOnly)) {
+            QTextStream stream(&file);
+            for (unsigned int n = 0; n < squares.size(); n++) {
+                for (int c = 0; c < 4; c++) {
+                    stream << QString("%1, %2, %3, %4\n").arg(squares[n][c].x).arg(squares[n][c].y).arg(coordinates[n][c].x).arg(coordinates[n][c].y);
+                }
+            }
+            file.close();
+        }
+
         // DELETE INVALID SQUARES WHILE ACCUMULATING POINTS FROM IMAGE TO GRID SPACE
         cv::vector<cv::Point2f> toPoints, fmPoints;
         for (unsigned int i = 0; i < coordinates.size(); i++) {
             for (unsigned int j = 0; j < 4; j++) {
                 // SEE IF THIS COORDINATE IS A NAN
-                if (coordinates[i][j] == coordinates[i][j]) {
-                    // FILTER POINTS LISTS TO ELIMINATE DUPLICATES
-                    bool flag = true;
-                    //for (int n = 0; n < (int)fmPoints.size(); n++) {
-                    //    if (fmPoints[n] == squares[i][j]) {
-                    //        flag = false;
-                    //    }
-                    //}
-                    if (flag) {
-                        fmPoints.push_back(squares[i][j]);
-                        toPoints.push_back(coordinates[i][j]);
-                    }
+                if (qIsNaN(coordinates[i][j].x * coordinates[i][j].y) == false) {
+                    qDebug() << squares[i][j].x << squares[i][j].y << coordinates[i][j].x << coordinates[i][j].y;
+
+                    fmPoints.push_back(squares[i][j]);
+                    toPoints.push_back(coordinates[i][j]);
                 }
             }
         }
 
         // LETS REMOVE OUTLIERS FROM OUR FMPOINTS BY USING A LINEAR MAPPING BETWEEN THE TWO
-        toPoints = removeOutlierPoints(fmPoints, toPoints);
+        removeOutlierPoints(fmPoints, toPoints);
 
         // MAKE SURE WE HAVE ENOUGH DETECTED POINTS
         if (toPoints.size() > (unsigned long)minBoxCount) {
@@ -1628,39 +1635,39 @@ cv::vector<cv::vector<cv::Point2f>> LAUCalTagGLWidget::findPattern(cv::Mat image
                             hist[3]++;
                             validCodeCounter++;
                             cv::vector<cv::Point2f> square;
-                            square.push_back(sqPoints[3] + point);
                             square.push_back(sqPoints[0] + point);
-                            square.push_back(sqPoints[1] + point);
+                            square.push_back(sqPoints[3] + point);
                             square.push_back(sqPoints[2] + point);
+                            square.push_back(sqPoints[1] + point);
                             outputSquares.push_back(square);
                         }
                     } else {
                         hist[2]++;
                         validCodeCounter++;
                         cv::vector<cv::Point2f> square;
-                        square.push_back(sqPoints[0] + point);
-                        square.push_back(sqPoints[1] + point);
-                        square.push_back(sqPoints[2] + point);
                         square.push_back(sqPoints[3] + point);
+                        square.push_back(sqPoints[2] + point);
+                        square.push_back(sqPoints[1] + point);
+                        square.push_back(sqPoints[0] + point);
                         outputSquares.push_back(square);
                     }
                 } else {
                     hist[1]++;
                     validCodeCounter++;
                     cv::vector<cv::Point2f> square;
-                    square.push_back(sqPoints[1] + point);
                     square.push_back(sqPoints[2] + point);
-                    square.push_back(sqPoints[3] + point);
+                    square.push_back(sqPoints[1] + point);
                     square.push_back(sqPoints[0] + point);
+                    square.push_back(sqPoints[3] + point);
                     outputSquares.push_back(square);
                 }
             } else {
                 hist[0]++;
                 cv::vector<cv::Point2f> square;
-                square.push_back(sqPoints[2] + point);
-                square.push_back(sqPoints[3] + point);
-                square.push_back(sqPoints[0] + point);
                 square.push_back(sqPoints[1] + point);
+                square.push_back(sqPoints[0] + point);
+                square.push_back(sqPoints[3] + point);
+                square.push_back(sqPoints[2] + point);
                 outputSquares.push_back(square);
             }
         } else {
@@ -1694,18 +1701,18 @@ cv::vector<cv::vector<cv::Point2f>> LAUCalTagGLWidget::findPattern(cv::Mat image
                             validCodeCounter++;
                             cv::vector<cv::Point2f> square;
                             square.push_back(sqPoints[2] + point);
-                            square.push_back(sqPoints[1] + point);
-                            square.push_back(sqPoints[0] + point);
                             square.push_back(sqPoints[3] + point);
+                            square.push_back(sqPoints[0] + point);
+                            square.push_back(sqPoints[1] + point);
                             outputSquares.push_back(square);
                         }
                     } else {
                         hist[2]++;
                         validCodeCounter++;
                         cv::vector<cv::Point2f> square;
-                        square.push_back(sqPoints[3] + point);
-                        square.push_back(sqPoints[2] + point);
                         square.push_back(sqPoints[1] + point);
+                        square.push_back(sqPoints[2] + point);
+                        square.push_back(sqPoints[3] + point);
                         square.push_back(sqPoints[0] + point);
                         outputSquares.push_back(square);
                     }
@@ -1714,33 +1721,21 @@ cv::vector<cv::vector<cv::Point2f>> LAUCalTagGLWidget::findPattern(cv::Mat image
                     validCodeCounter++;
                     cv::vector<cv::Point2f> square;
                     square.push_back(sqPoints[0] + point);
-                    square.push_back(sqPoints[3] + point);
-                    square.push_back(sqPoints[2] + point);
                     square.push_back(sqPoints[1] + point);
+                    square.push_back(sqPoints[2] + point);
+                    square.push_back(sqPoints[3] + point);
                     outputSquares.push_back(square);
                 }
             } else {
                 hist[0]++;
                 cv::vector<cv::Point2f> square;
-                square.push_back(sqPoints[1] + point);
-                square.push_back(sqPoints[2] + point);
                 square.push_back(sqPoints[3] + point);
                 square.push_back(sqPoints[0] + point);
+                square.push_back(sqPoints[1] + point);
+                square.push_back(sqPoints[2] + point);
                 outputSquares.push_back(square);
             }
         }
-    }
-
-    // PRINT OUT A REPORT ON HOW IMAGE SQUARES ARE ALIGNED AND HOW THEY GET MAPPED TO CALTAG SQUARES
-    QFile file(QString("/tmp/squaresReport.txt"));
-    if (file.open(QIODevice::WriteOnly)) {
-        QTextStream stream(&file);
-        for (unsigned int n = 0; n < squares.size(); n++) {
-            for (int c = 0; c < 4; c++) {
-                stream << QString("%1, %2, %3, %4\n").arg(squares[n][c].x).arg(squares[n][c].y).arg(outputSquares[n][c].x).arg(outputSquares[n][c].y);
-            }
-        }
-        file.close();
     }
     qDebug() << "Orientations:" << hist[0] << hist[1] << hist[2] << hist[3];
 
@@ -1837,11 +1832,11 @@ bool LAUCalTagGLWidget::checkBitCode(int code, cv::Point2f *pt)
 /******************************************************************************/
 /******************************************************************************/
 /******************************************************************************/
-cv::vector<cv::Point2f> LAUCalTagGLWidget::removeOutlierPoints(cv::vector<cv::Point2f> fmPoints, cv::vector<cv::Point2f> toPoints)
+void LAUCalTagGLWidget::removeOutlierPoints(cv::vector<cv::Point2f> &fmPoints, cv::vector<cv::Point2f> &toPoints)
 {
     // MAKE SURE WE HAVE ENOUGH POINTS TO MAKE THIS WORTH WHILE
     if (fmPoints.size() < 20) {
-        return (toPoints);
+        return;
     }
 
     // PRINT OUT A REPORT ON HOW IMAGE SQUARES ARE ALIGNED AND HOW THEY GET MAPPED TO CALTAG SQUARES
@@ -1855,7 +1850,6 @@ cv::vector<cv::Point2f> LAUCalTagGLWidget::removeOutlierPoints(cv::vector<cv::Po
     }
 
     cv::Mat transform;
-    cv::vector<cv::Point2f> nwPoints = fmPoints;
     unsigned int numIterations = fmPoints.size() * 0.15;
     for (unsigned int iter = 0; iter < numIterations; iter++) {
         // GET THE BEST MAPPING BASED ON THE CURRENT SET OF POINTS
@@ -1879,18 +1873,7 @@ cv::vector<cv::Point2f> LAUCalTagGLWidget::removeOutlierPoints(cv::vector<cv::Po
         toPoints.erase(toPoints.begin() + optIndex);
     }
 
-    // AT THIS POINT, WE SHOULD HAVE A GOOD FIT, ABSENT ANY OUTLIERS
-    // SO LETS REASSIGN THE XY COORDINATES OF OUR TO-POINTS BASED ON THE
-    // CURRENT TRANSFORM
-    for (unsigned int n = 0; n < nwPoints.size(); n++) {
-        double z =  nwPoints[n].x * transform.at<double>(2, 0) + nwPoints[n].y * transform.at<double>(2, 1) + transform.at<double>(2, 2);
-        double x = (nwPoints[n].x * transform.at<double>(0, 0) + nwPoints[n].y * transform.at<double>(0, 1) + transform.at<double>(0, 2)) / z;
-        double y = (nwPoints[n].x * transform.at<double>(1, 0) + nwPoints[n].y * transform.at<double>(1, 1) + transform.at<double>(1, 2)) / z;
-
-        nwPoints[n] = cv::Point2f((float)qRound(x), (float)qRound(y));
-    }
-
-    return (nwPoints);
+    return;
 }
 
 /******************************************************************************/

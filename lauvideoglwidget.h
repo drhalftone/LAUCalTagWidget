@@ -105,6 +105,11 @@ protected:
     virtual void resize(int w, int h) { ; }
     virtual void paint();
 
+    void processGL()
+    {
+        makeCurrent();
+        process();
+    }
     void initializeGL();
     void resizeGL(int w, int h);
     void paintGL()

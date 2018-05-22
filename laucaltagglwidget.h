@@ -105,46 +105,55 @@ public slots:
     void onSetOffset(double val)
     {
         quantizationOffset = val;
+        processGL();
     }
 
     void onSetMedianRadius(int val)
     {
         medianFilterRadius = val;
+        processGL();
     }
 
     void onSetGaussianRadius(int val)
     {
         gaussianFilterRadius = val;
+        processGL();
     }
 
     void onSetIterations(int val)
     {
         iterationCount = val;
+        processGL();
     }
 
     void onSetMinRegionArea(int val)
     {
         minRegionArea = val;
+        processGL();
     }
 
     void onSetMaxRegionArea(int val)
     {
         maxRegionArea = val;
+        processGL();
     }
 
     void onSetMinBoxCount(int val)
     {
         minBoxCount = val;
+        processGL();
     }
 
     void onSetFlipCalTagsFlag(bool val)
     {
         flipCalTagsFlag = val;
+        processGL();
     }
 
     void onEnableTexture(bool state)
     {
         displayTextureFlag = state;
+        processGL();
     }
 
 protected:
@@ -347,7 +356,7 @@ class LAUCalTagDialog : public QDialog
 public:
     LAUCalTagDialog(QImage image, QWidget *parent = 0)
     {
-        if (image.isNull()){
+        if (image.isNull()) {
             QSettings settings;
             QString directory = settings.value("LAUCalTagDialog::lastUsedDirectory", QStandardPaths::writableLocation(QStandardPaths::DocumentsLocation)).toString();
             QString filename = QFileDialog::getOpenFileName(0, QString("Load image from disk"), directory, QString("*.tif *.tiff *.bmp *.jpg *.jpeg"));
@@ -371,9 +380,10 @@ public:
     }
 
 protected:
-    void accept(){
+    void accept()
+    {
         LAUMemoryObject object = widget->grabImage();
-        if (object.save(QString())){
+        if (object.save(QString())) {
             QDialog::accept();
         }
     }

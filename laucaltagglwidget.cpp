@@ -639,6 +639,9 @@ void LAUCalTagGLWidget::initialize()
 void LAUCalTagGLWidget::process()
 {
     if (videoTexture) {
+        static int counter = 0;
+        qDebug() << "LAUCalTagGLWidget::process()" << counter;
+
         // SEE IF WE NEED NEW FBOS
         testFBO(&frameBufferObjectA);
         testFBO(&frameBufferObjectB);
@@ -674,13 +677,8 @@ void LAUCalTagGLWidget::process()
         for (int n = 0; n < 30; n++) {
             transformAsVector[n] = (float)transform.at<double>(n);
         }
-
         qDebug() << "Detected grid:" << okay;
 
-#ifdef QT_DEBUG
-        // UPLOAD THE DEBUG BUFFER TO THE GPU AS A TEXTURE
-        videoTexture->setData(QOpenGLTexture::RGB, QOpenGLTexture::UInt8, (const void *)debugObject.constData());
-#endif
         // DRAW THE BEST-FIT XY PLANE TO SCREEN WITH THE BINARY IMAGE
         if (frameBufferObjectB && frameBufferObjectB->bind()) {
             if (programJ.bind()) {
@@ -715,6 +713,7 @@ void LAUCalTagGLWidget::process()
             }
             frameBufferObjectB->release();
         }
+        update();
     }
 }
 
@@ -737,8 +736,11 @@ void LAUCalTagGLWidget::paint()
                     if (quadIndexBuffer.bind()) {
                         // SET THE ACTIVE TEXTURE ON THE GPU
                         glActiveTexture(GL_TEXTURE0);
-                        //videoTexture->bind();
+#ifdef QT_DEBUG
                         glBindTexture(GL_TEXTURE_2D, frameBufferObjectB->texture());
+#else
+                        videoTexture->bind();
+#endif
                         programK.setUniformValue("qt_texture", 0);
 
                         if (displayTextureFlag) {

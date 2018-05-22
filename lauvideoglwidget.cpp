@@ -53,7 +53,7 @@ LAUVideoGLWidget::~LAUVideoGLWidget()
 /****************************************************************************/
 void LAUVideoGLWidget::setFrame(unsigned char *buffer)
 {
-    if (wasInitialized()){
+    if (wasInitialized()) {
         // MAKE SURE USER SET THE SIZE OF THE INCOMING BUFFER BEFORE CALLING THIS METHOD
         if (numCols < 0 && numRows < 0) {
             return;
@@ -107,7 +107,7 @@ void LAUVideoGLWidget::setFrame(const QVideoFrame &frame)
 {
     QVideoFrame localFrame = frame;
 
-    if (wasInitialized()){
+    if (wasInitialized()) {
         if (localFrame.map(QAbstractVideoBuffer::ReadOnly)) {
             // REPORT FRAME RATE TO THE CONSOLE
             counter++;
@@ -166,7 +166,7 @@ void LAUVideoGLWidget::setFrame(const QVideoFrame &frame)
 void LAUVideoGLWidget::setFrame(QImage frame)
 {
     if (frame.isNull() == false) {
-        if (wasInitialized()){
+        if (wasInitialized()) {
             // REPORT FRAME RATE TO THE CONSOLE
             counter++;
             if (counter >= 30) {
@@ -185,12 +185,9 @@ void LAUVideoGLWidget::setFrame(QImage frame)
 
                 // CREATE THE GPU SIDE TEXTURE BUFFER TO HOLD THE INCOMING VIDEO
                 videoTexture = new QOpenGLTexture(QOpenGLTexture::Target2D);
-                videoTexture->setSize(frame.width(), frame.height());
-                videoTexture->setFormat(QOpenGLTexture::RGBA32F);
                 videoTexture->setWrapMode(QOpenGLTexture::ClampToBorder);
                 videoTexture->setMinificationFilter(QOpenGLTexture::Nearest);
                 videoTexture->setMagnificationFilter(QOpenGLTexture::Nearest);
-                videoTexture->allocateStorage();
 
                 qDebug() << videoTexture->width() << videoTexture->height();
             }
@@ -286,11 +283,11 @@ void LAUVideoGLWidget::initializeGL()
     // CALL THE SUBCLASS INITIALIZE FUNCTION
     initialize();
 
-    if (localBuffer){
+    if (localBuffer) {
         setFrame(localBuffer);
-    } else if (localVideoFrame.isValid()){
+    } else if (localVideoFrame.isValid()) {
         setFrame(localVideoFrame);
-    } else if (localImage.isNull() == false){
+    } else if (localImage.isNull() == false) {
         setFrame(localImage);
     }
 }

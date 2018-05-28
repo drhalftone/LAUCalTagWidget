@@ -99,6 +99,26 @@ public:
         return (iterationCount);
     }
 
+    int minRegion() const
+    {
+        return (minRegionArea);
+    }
+
+    int maxRegion() const
+    {
+        return (maxRegionArea);
+    }
+
+    int minBox() const
+    {
+        return (minBoxCount);
+    }
+
+    bool flipCalTags() const
+    {
+        return (flipCalTagsFlag);
+    }
+
     LAUMemoryObject grabImage();
 
 public slots:
@@ -150,12 +170,6 @@ public slots:
         processGL();
     }
 
-    void onEnableTexture(bool state)
-    {
-        displayTextureFlag = state;
-        processGL();
-    }
-
 protected:
     void initialize();
     void process();
@@ -178,7 +192,6 @@ private:
     int maxRegionArea;     // MAXIMUM REGION AREA
     int minBoxCount;       // MINIMUM BOX AREA
     bool flipCalTagsFlag;  // IS THE TARGET BACKLIT?
-    bool displayTextureFlag;
 
     QByteArray memoryObject[2];
 #ifdef QT_DEBUG
@@ -203,7 +216,6 @@ private:
     void dilationErosion(QOpenGLFramebufferObject *fboA, QOpenGLFramebufferObject *fboB);
     void removeOutlierPoints(cv::vector<cv::Point2f> &fmPoints, cv::vector<cv::Point2f> &toPoints);
 
-    cv::Mat cleanStrays(cv::Mat inImage);
     cv::vector<cv::RotatedRect> regionArea(cv::Mat inImage);
     cv::vector<cv::vector<cv::Point2f>> findSaddles(cv::vector<cv::RotatedRect> rotatedRects);
     cv::vector<cv::vector<cv::Point2f>> findPattern(cv::Mat image, cv::vector<cv::vector<cv::Point2f>> squares);

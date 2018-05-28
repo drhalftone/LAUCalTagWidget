@@ -489,17 +489,16 @@ LAUCalTagFilterWidget::LAUCalTagFilterWidget(LAUCalTagGLWidget *glwdgt, QWidget 
     mednSpinBox->setValue(settings.value(QString("LAUCalTagScanWidget::mednSpinBox"), glWidget->medianRadius()).toInt());
     offsetSpinBox->setValue(settings.value(QString("LAUCalTagScanWidget::offsetSpinBox"), glWidget->offset()).toDouble());
 
-    // COPY THE PARAMETERS OVER TO THE GLFILTER
-    glWidget->onSetMedianRadius(mednSpinBox->value());
-    glWidget->onSetGaussianRadius(gausSpinBox->value());
-    glWidget->onSetIterations(iterSpinBox->value());
-    glWidget->onSetFlipCalTagsFlag(flipCalTagsFlag->isChecked());
+    minRegionArea->setValue(settings.value(QString("LAUCalTagScanWidget::minRegionArea"), glWidget->minRegion()).toInt());
+    maxRegionArea->setValue(settings.value(QString("LAUCalTagScanWidget::maxRegionArea"), glWidget->maxRegion()).toInt());
+    minBoxCount->setValue(settings.value(QString("LAUCalTagScanWidget::minBoxCount"), glWidget->minBox()).toInt());
+    flipCalTagsFlag->setChecked(settings.value(QString("LAUCalTagScanWidget::flipCalTagsFlag"), glWidget->flipCalTags()).toBool());
 }
 
 /****************************************************************************/
 /****************************************************************************/
 /****************************************************************************/
-LAUCalTagGLWidget::LAUCalTagGLWidget(QWidget *parent) : LAUVideoGLWidget(parent), displayTextureFlag(true)
+LAUCalTagGLWidget::LAUCalTagGLWidget(QWidget *parent) : LAUVideoGLWidget(parent)
 {
     // INITIALIZE PRIVATE VARIABLES
     textureLUT = NULL;
@@ -518,7 +517,7 @@ LAUCalTagGLWidget::LAUCalTagGLWidget(QWidget *parent) : LAUVideoGLWidget(parent)
     minBoxCount     = 32;                   // 2X2 PIXELS TIMES 8X8 BOX SIZE
     maxRegionArea   = (640 * 480) / 16;     // NEEDS IMAGE SIZE AND BYTES PER PIXEL
     minRegionArea   = maxRegionArea / 10;
-    flipCalTagsFlag = true;
+    flipCalTagsFlag = false;
 }
 
 /****************************************************************************/
@@ -738,18 +737,8 @@ void LAUCalTagGLWidget::paint()
                     if (quadIndexBuffer.bind()) {
                         // SET THE ACTIVE TEXTURE ON THE GPU
                         glActiveTexture(GL_TEXTURE0);
-#ifndef QT_DEBUG
                         glBindTexture(GL_TEXTURE_2D, frameBufferObjectB->texture());
-#else
-                        videoTexture->bind();
-#endif
                         programK.setUniformValue("qt_texture", 0);
-
-                        if (displayTextureFlag) {
-                            programK.setUniformValue("qt_mode", 0);
-                        } else {
-                            programK.setUniformValue("qt_mode", 1);
-                        }
 
                         // TELL OPENGL PROGRAMMABLE PIPELINE HOW TO LOCATE VERTEX POSITION DATA
                         programK.setAttributeBuffer("qt_vertex", GL_FLOAT, 0, 4, 4 * sizeof(float));
@@ -1210,8 +1199,6 @@ cv::Mat LAUCalTagGLWidget::detectCalTagGrid(bool *okay)
 #endif
     cv::vector<cv::RotatedRect> rotatedRects = regionArea(sbImage);
 
-    cv::imwrite("/tmp/sbImage.tif", sbImage);
-
     // MAKE SURE WE HAVE ENOUGH DETECTED RECTANGLES
     if (rotatedRects.size() > (unsigned long)minBoxCount) {
         // GET A GOOD APPROXIMATION OF WHERE THE SADDLE POINTS ARE
@@ -1286,28 +1273,6 @@ cv::Mat LAUCalTagGLWidget::detectCalTagGrid(bool *okay)
         }
     }
     return (localTransform);
-}
-
-/***************************************************************************/
-/***************************************************************************/
-/***************************************************************************/
-cv::Mat LAUCalTagGLWidget::cleanStrays(cv::Mat inImage)
-{
-    // MAKE A COPY OF THE INPUT IMAGE TO BE SAME FORMAT AND SIZE
-    cv::Mat otImage = inImage;
-
-    //REMOVE RANDOM NOISE THAT WAS IDENTIFIED AS A CONTOUR
-    cv::vector<cv::vector<cv::Point>> contours;
-    cv::vector<cv::Vec4i> hierarchy;
-
-    cv::findContours(inImage.clone(), contours, hierarchy, CV_RETR_LIST, CV_CHAIN_APPROX_NONE, cv::Point(0, 0));
-    cv::Scalar color = cv::Scalar(0);
-    for (unsigned int i = 0; i < contours.size(); i++) {
-        if (contours[i].size() < 8) {
-            cv::floodFill(otImage, contours[i][0], color);
-        }
-    }
-    return (otImage);
 }
 
 /***************************************************************************/
@@ -1564,7 +1529,90 @@ cv::vector<cv::vector<cv::Point2f>> LAUCalTagGLWidget::findPattern(cv::Mat image
         decodingMatrix.at<int>(i / 4, i % 4) = qRound(pow(2.0, (double)i));
     }
 
+    // NOW LET'S TRY ALL ORIENTATIONS TO SEE WHICH IS THE MOST LIKELY ORIENTATION
     int hist[4] = { 0, 0, 0, 0};
+    for (unsigned int n = 0; n < squares.size(); n++) {
+        // DERIVE SQUARE COORDINATES TO IMAGE PIXEL COORDINATES BASED ON CURRENT SQUARE
+        cv::vector<cv::Point2f> inPoints;
+        for (int c = 0; c < 4; c++) {
+            inPoints.push_back(squares[n][c]);
+        }
+        cv::Mat localTransform = cv::getPerspectiveTransform(sqPoints, inPoints);
+
+        // MAP THE CODE BIT COORDINATES TO IMAGE PIXEL COORDINATES
+        cv::Mat codeMatrix(4, 4, CV_32S);
+        cv::transform(gdPoints, kgPoints, localTransform);
+        for (unsigned int i = 0; i < kgPoints.size(); i++) {
+            // ACCUMULATE THE SUM OF PIXELS WITHIN A SMALL WINDOW ABOUT CURRENT PIXEL
+            int row = qRound(kgPoints[i].y / kgPoints[i].z);
+            int col = qRound(kgPoints[i].x / kgPoints[i].z);
+
+            // MAKE SURE THE CURRENT COORDINATE IS WITHIN THE BOUNDS OF THE IMAGE
+            if (row > 0 && row < image.rows - 1) {
+                if (col > 0 && col < image.cols - 1) {
+                    int sum = 0;
+                    for (int r = row - 1; r < row + 2; r++) {
+                        for (int c = col - 1; c < col + 2; c++) {
+                            sum += (image.at<unsigned char>(r, c) > 128);
+                        }
+                    }
+                    // COPY THE CURRENT BIT TO THE CODE MATRIX
+                    if (sum > 4) {
+                        codeMatrix.at<int>(i / 4, 3 - i % 4) = 1;
+                    } else {
+                        codeMatrix.at<int>(i / 4, 3 - i % 4) = 0;
+                    }
+                }
+            }
+        }
+
+        // FLIP THE CODE MATRIX LEFT-RIGHT IN CASE WE ARE
+        // LOOKING AT THE TARGET FROM BEHIND WITH BACK LIGHTING
+        if (flipCalTagsFlag) {
+            cv::flip(codeMatrix, codeMatrix, 1);
+        }
+
+        cv::Point2f point;
+        unsigned int code = decodingMatrix.dot(codeMatrix);
+        if (checkBitCode(code, &point)) {
+            hist[0]++;
+        }
+
+        cv::Mat matrix = codeMatrix;
+        cv::transpose(matrix, matrix);
+        cv::flip(matrix, matrix, 1);
+        code = decodingMatrix.dot(matrix);
+
+        if (checkBitCode(code, &point)) {
+            hist[1]++;
+        }
+
+        cv::transpose(matrix, matrix);
+        cv::flip(matrix, matrix, 1);
+        code = decodingMatrix.dot(matrix);
+
+        if (checkBitCode(code, &point)) {
+            hist[2]++;
+        }
+
+        cv::transpose(matrix, matrix);
+        cv::flip(matrix, matrix, 1);
+        code = decodingMatrix.dot(matrix);
+
+        if (checkBitCode(code, &point)) {
+            hist[3]++;
+        }
+    }
+
+    // DETERMINE WHICH ORIENTATION IS THE MOST FREQUENT
+    int orientation = 3;
+    if (hist[0] > hist[1] && hist[0] > hist[2] && hist[0] > hist[3]) {
+        orientation = 0;
+    } else if (hist[1] > hist[0] && hist[1] > hist[2] && hist[1] > hist[3]) {
+        orientation = 1;
+    } else if (hist[2] > hist[0] && hist[2] > hist[1] && hist[2] > hist[3]) {
+        orientation = 2;
+    }
 
     int validCodeCounter = 0;
     for (unsigned int n = 0; n < squares.size(); n++) {
@@ -1609,23 +1657,23 @@ cv::vector<cv::vector<cv::Point2f>> LAUCalTagGLWidget::findPattern(cv::Mat image
 
             cv::Point2f point;
             unsigned int code = decodingMatrix.dot(codeMatrix);
-            if (checkBitCode(code, &point) == false) {
+            if (orientation != 0 || checkBitCode(code, &point) == false) {
                 cv::Mat matrix = codeMatrix;
                 cv::transpose(matrix, matrix);
                 cv::flip(matrix, matrix, 1);
                 code = decodingMatrix.dot(matrix);
 
-                if (checkBitCode(code, &point) == false) {
+                if (orientation != 1 || checkBitCode(code, &point) == false) {
                     cv::transpose(matrix, matrix);
                     cv::flip(matrix, matrix, 1);
                     code = decodingMatrix.dot(matrix);
 
-                    if (checkBitCode(code, &point) == false) {
+                    if (orientation != 2 || checkBitCode(code, &point) == false) {
                         cv::transpose(matrix, matrix);
                         cv::flip(matrix, matrix, 1);
                         code = decodingMatrix.dot(matrix);
 
-                        if (checkBitCode(code, &point) == false) {
+                        if (orientation != 3 || checkBitCode(code, &point) == false) {
                             cv::vector<cv::Point2f> square;
                             square.push_back(cv::Point2f(NAN, NAN));
                             square.push_back(cv::Point2f(NAN, NAN));
@@ -1633,7 +1681,6 @@ cv::vector<cv::vector<cv::Point2f>> LAUCalTagGLWidget::findPattern(cv::Mat image
                             square.push_back(cv::Point2f(NAN, NAN));
                             outputSquares.push_back(square);
                         } else {
-                            hist[3]++;
                             validCodeCounter++;
                             cv::vector<cv::Point2f> square;
                             square.push_back(sqPoints[3] + point);
@@ -1643,7 +1690,6 @@ cv::vector<cv::vector<cv::Point2f>> LAUCalTagGLWidget::findPattern(cv::Mat image
                             outputSquares.push_back(square);
                         }
                     } else {
-                        hist[2]++;
                         validCodeCounter++;
                         cv::vector<cv::Point2f> square;
                         square.push_back(sqPoints[2] + point);
@@ -1653,7 +1699,6 @@ cv::vector<cv::vector<cv::Point2f>> LAUCalTagGLWidget::findPattern(cv::Mat image
                         outputSquares.push_back(square);
                     }
                 } else {
-                    hist[1]++;
                     validCodeCounter++;
                     cv::vector<cv::Point2f> square;
                     square.push_back(sqPoints[1] + point);
@@ -1663,7 +1708,6 @@ cv::vector<cv::vector<cv::Point2f>> LAUCalTagGLWidget::findPattern(cv::Mat image
                     outputSquares.push_back(square);
                 }
             } else {
-                hist[0]++;
                 cv::vector<cv::Point2f> square;
                 square.push_back(sqPoints[0] + point);
                 square.push_back(sqPoints[3] + point);
@@ -1674,23 +1718,23 @@ cv::vector<cv::vector<cv::Point2f>> LAUCalTagGLWidget::findPattern(cv::Mat image
         } else {
             cv::Point2f point;
             unsigned int code = decodingMatrix.dot(codeMatrix);
-            if (checkBitCode(code, &point) == false) {
+            if (orientation != 0 || checkBitCode(code, &point) == false) {
                 cv::Mat matrix = codeMatrix;
                 cv::transpose(matrix, matrix);
                 cv::flip(matrix, matrix, 1);
                 code = decodingMatrix.dot(matrix);
 
-                if (checkBitCode(code, &point) == false) {
+                if (orientation != 1 || checkBitCode(code, &point) == false) {
                     cv::transpose(matrix, matrix);
                     cv::flip(matrix, matrix, 1);
                     code = decodingMatrix.dot(matrix);
 
-                    if (checkBitCode(code, &point) == false) {
+                    if (orientation != 2 || checkBitCode(code, &point) == false) {
                         cv::transpose(matrix, matrix);
                         cv::flip(matrix, matrix, 1);
                         code = decodingMatrix.dot(matrix);
 
-                        if (checkBitCode(code, &point) == false) {
+                        if (orientation != 3 || checkBitCode(code, &point) == false) {
                             cv::vector<cv::Point2f> square;
                             square.push_back(cv::Point2f(NAN, NAN));
                             square.push_back(cv::Point2f(NAN, NAN));
@@ -1698,7 +1742,6 @@ cv::vector<cv::vector<cv::Point2f>> LAUCalTagGLWidget::findPattern(cv::Mat image
                             square.push_back(cv::Point2f(NAN, NAN));
                             outputSquares.push_back(square);
                         } else {
-                            hist[3]++;
                             validCodeCounter++;
                             cv::vector<cv::Point2f> square;
                             square.push_back(sqPoints[0] + point);
@@ -1708,7 +1751,6 @@ cv::vector<cv::vector<cv::Point2f>> LAUCalTagGLWidget::findPattern(cv::Mat image
                             outputSquares.push_back(square);
                         }
                     } else {
-                        hist[2]++;
                         validCodeCounter++;
                         cv::vector<cv::Point2f> square;
                         square.push_back(sqPoints[3] + point);
@@ -1718,7 +1760,6 @@ cv::vector<cv::vector<cv::Point2f>> LAUCalTagGLWidget::findPattern(cv::Mat image
                         outputSquares.push_back(square);
                     }
                 } else {
-                    hist[1]++;
                     validCodeCounter++;
                     cv::vector<cv::Point2f> square;
                     square.push_back(sqPoints[2] + point);
@@ -1728,7 +1769,6 @@ cv::vector<cv::vector<cv::Point2f>> LAUCalTagGLWidget::findPattern(cv::Mat image
                     outputSquares.push_back(square);
                 }
             } else {
-                hist[0]++;
                 cv::vector<cv::Point2f> square;
                 square.push_back(sqPoints[1] + point);
                 square.push_back(sqPoints[2] + point);
@@ -1832,7 +1872,7 @@ bool LAUCalTagGLWidget::checkBitCode(int code, cv::Point2f *pt)
     for (int i = 0; i < 20; i++) {
         for (int j = 13; j >= 0; j--) {
             if (code == realBitCodes[i][j]) {
-                *pt = cv::Point2f(7.0f - (float)(13 - j), 14.0f - (float)(20 - i));
+                *pt = cv::Point2f((float)(j - 7), (float)(i - 7));
                 return (true);
             } else if (code > realBitCodes[i][j]) {
                 return (false);

@@ -1954,28 +1954,38 @@ void LAUCalTagGLWidget::removeOutlierPoints(cv::vector<cv::Point2f> &fmPoints, c
     //    file.close();
     //}
 
-    cv::Mat transform;
-    unsigned int numIterations = fmPoints.size() * 0.15;
+    unsigned int numIterations = fmPoints.size() * 0.50;
     for (unsigned int iter = 0; iter < numIterations; iter++) {
         // GET THE BEST MAPPING BASED ON THE CURRENT SET OF POINTS
-        transform = findBestLinearMapping(fmPoints, toPoints);
+        cv::Mat transform = cv::findHomography(fmPoints, toPoints, 0);
+
+        // CREATE A NEW SET OF TO POINTS
+        cv::vector<cv::Point2f> toPts = toPoints;
+
+        // TRANSFORM POINTS USING CURRENT TRANSFORM
+        cv::perspectiveTransform(fmPoints, toPts, transform);
 
         // SEARCH THROUGH LIST LOOKING FOR WORST CASE POINT AND DELETE IT FROM THE LIST
         double optError = 0.0;
         unsigned int optIndex = 0;
         for (unsigned int n = 0; n < fmPoints.size(); n++) {
-            double z =  fmPoints[n].x * transform.at<double>(2, 0) + fmPoints[n].y * transform.at<double>(2, 1) + transform.at<double>(2, 2);
-            double x = (fmPoints[n].x * transform.at<double>(0, 0) + fmPoints[n].y * transform.at<double>(0, 1) + transform.at<double>(0, 2)) / z;
-            double y = (fmPoints[n].x * transform.at<double>(1, 0) + fmPoints[n].y * transform.at<double>(1, 1) + transform.at<double>(1, 2)) / z;
-            double e = (x - toPoints[n].x) * (x - toPoints[n].x) + (y - toPoints[n].y) * (y - toPoints[n].y);
+            cv::Point2f delta = toPoints[n] - toPts[n];
+            double e = sqrt(delta.x * delta.x + delta.y * delta.y);
             if (e > optError) {
                 optIndex = n;
                 optError = e;
             }
         }
+
+        // SEE IF WE ARE REALLY CLOSE AND IF SO, QUIT TRIMMING POINTS
+        if (optError < 0.05) {
+            break;
+        }
+
         // DELETE THE WORST CASE POINT PAIR FROM OUR LISTS
         fmPoints.erase(fmPoints.begin() + optIndex);
         toPoints.erase(toPoints.begin() + optIndex);
+        toPts.erase(toPts.begin() + optIndex);
     }
 
     return;

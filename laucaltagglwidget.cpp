@@ -1198,6 +1198,7 @@ cv::Mat LAUCalTagGLWidget::detectCalTagGrid(bool *okay)
     cv::Mat dbImage(videoTexture->height(), videoTexture->width(), CV_8UC3, (unsigned char *)debugObject.constData(), 3 * videoTexture->width());
 #endif
     cv::vector<cv::RotatedRect> rotatedRects = regionArea(sbImage);
+    cv::vector<cv::vector<cv::Point2f>> quads = quadArea(inImage, sbImage);
 
     // MAKE SURE WE HAVE ENOUGH DETECTED RECTANGLES
     if (rotatedRects.size() > (unsigned long)minBoxCount) {
@@ -1214,19 +1215,19 @@ cv::Mat LAUCalTagGLWidget::detectCalTagGrid(bool *okay)
         squares = organizeSquares(squares);
 
         // DECODE THE CALTAG SQUARES
-        cv::vector<cv::vector<cv::Point2f>> coordinates = findPattern(inImage, squares);
+        cv::vector<cv::vector<cv::Point2f>> coordinates = findPattern(inImage, quads);
 
         // PRINT OUT A REPORT ON HOW IMAGE SQUARES ARE ALIGNED AND HOW THEY GET MAPPED TO CALTAG SQUARES
-        QFile file(QString("/tmp/squaresReport.txt"));
-        if (file.open(QIODevice::WriteOnly)) {
-            QTextStream stream(&file);
-            for (unsigned int n = 0; n < squares.size(); n++) {
-                for (int c = 0; c < 4; c++) {
-                    stream << QString("%1, %2, %3, %4\n").arg(squares[n][c].x).arg(squares[n][c].y).arg(coordinates[n][c].x).arg(coordinates[n][c].y);
-                }
-            }
-            file.close();
-        }
+        //QFile file(QString("/tmp/squaresReport.txt"));
+        //if (file.open(QIODevice::WriteOnly)) {
+        //    QTextStream stream(&file);
+        //    for (unsigned int n = 0; n < squares.size(); n++) {
+        //        for (int c = 0; c < 4; c++) {
+        //            stream << QString("%1, %2, %3, %4\n").arg(squares[n][c].x).arg(squares[n][c].y).arg(coordinates[n][c].x).arg(coordinates[n][c].y);
+        //        }
+        //    }
+        //    file.close();
+        //}
 
         // DELETE INVALID SQUARES WHILE ACCUMULATING POINTS FROM IMAGE TO GRID SPACE
         cv::vector<cv::Point2f> toPoints, fmPoints;
@@ -1234,7 +1235,7 @@ cv::Mat LAUCalTagGLWidget::detectCalTagGrid(bool *okay)
             for (unsigned int j = 0; j < 4; j++) {
                 // SEE IF THIS COORDINATE IS A NAN
                 if (qIsNaN(coordinates[i][j].x * coordinates[i][j].y) == false) {
-                    fmPoints.push_back(squares[i][j]);
+                    fmPoints.push_back(quads[i][j]);
                     toPoints.push_back(coordinates[i][j]);
                 }
             }
@@ -1278,19 +1279,46 @@ cv::Mat LAUCalTagGLWidget::detectCalTagGrid(bool *okay)
 /***************************************************************************/
 /***************************************************************************/
 /***************************************************************************/
-cv::vector<cv::RotatedRect> LAUCalTagGLWidget::regionArea(cv::Mat inImage)
+cv::vector<cv::vector<cv::Point2f>> LAUCalTagGLWidget::quadArea(cv::Mat inImage, cv::Mat sbImage)
 {
     // CREATE ASSOCIATED DATA STRUCTURES TO HOLD INTERMEDIATE RESULTS
     cv::vector<cv::vector<cv::Point>> contours;
     cv::vector<cv::Vec4i> hierarchy;
+
+    // SEARCH AND STORE ANY CONTOURS IN THE IMAGE
+    cv::findContours(sbImage.clone(), contours, hierarchy, CV_RETR_TREE, CV_CHAIN_APPROX_NONE, cv::Point(0, 0));
+
+    cv::vector<cv::vector<cv::Point>> contoursPoly;
+    cv::vector<cv::vector<cv::Point2f>> quadrilaterals;
+
+    // FOR EACH CONTOUR, APPROXIMATE IT WITH A POLYGON
+    for (unsigned int i = 0; i < contours.size(); ++i) {
+        contoursPoly.push_back(contours[i]);
+        cv::approxPolyDP(contours[i], contoursPoly[i], 3, true);
+        if (contoursPoly[i].size() == 4 && cv::isContourConvex(contoursPoly[i])) {
+            quadrilaterals.push_back(sortPoints(contoursPoly[i]));
+        }
+    }
+
+    return (quadrilaterals);
+}
+
+/***************************************************************************/
+/***************************************************************************/
+/***************************************************************************/
+cv::vector<cv::RotatedRect> LAUCalTagGLWidget::regionArea(cv::Mat sbImage)
+{
+    // CREATE ASSOCIATED DATA STRUCTURES TO HOLD INTERMEDIATE RESULTS
+    cv::vector<cv::vector<cv::Point>> contours;
     cv::vector<cv::RotatedRect> rotatedRects;
+    cv::vector<cv::Vec4i> hierarchy;
 #ifdef QT_DEBUG
     // CREATE A DEBUG IMAGE TO DRAW INTO
     cv::Mat dbImage(videoTexture->height(), videoTexture->width(), CV_8UC3, (unsigned char *)debugObject.constData(), 3 * videoTexture->width());
 #endif
 
     // SEARCH AND STORE ANY CONTOURS IN THE IMAGE
-    cv::findContours(inImage.clone(), contours, hierarchy, CV_RETR_TREE, CV_CHAIN_APPROX_NONE, cv::Point(0, 0));
+    cv::findContours(sbImage.clone(), contours, hierarchy, CV_RETR_TREE, CV_CHAIN_APPROX_NONE, cv::Point(0, 0));
 
     float mean = 0.0f;
     int increment = 0;
@@ -1309,20 +1337,8 @@ cv::vector<cv::RotatedRect> LAUCalTagGLWidget::regionArea(cv::Mat inImage)
     for (cv::vector<cv::Vec4i>::size_type idx = 0; idx < hierarchy.size(); ++idx) {
         if ((hierarchy[idx][0] != -1) && (hierarchy[idx][3] != -1)) {
             rectangles.push_back(cv::minAreaRect(contoursPoly[idx]));
-#ifdef DONTCOMPILE
-            // DRAW ALL THE ROTATED RECTANGLES AT THIS POINT
-            cv::Point2f rect_points[4];
-            cv::minAreaRect(contoursPoly[idx]).points(rect_points);
-            for (int j = 0; j < 4; j++) {
-                cv::line(dbImage, rect_points[j], rect_points[(j + 1) % 4], cv::Scalar(0, 255, 0));
-            }
-#endif
         }
     }
-#ifdef DONTCOMPILE
-    // DRAW ALL THE DETECTED CONTOURS AT THIS POINT
-    cv::drawContours(dbImage, contoursPoly, -1, cv::Scalar(255, 0, 0));
-#endif
 
     // USE THE MINIMUM AND MAXIMUM REGIONS TO ELIMINATE MORE BOXES
     cv::vector<cv::RotatedRect> bestRectangles;
@@ -1787,6 +1803,42 @@ cv::vector<cv::vector<cv::Point2f>> LAUCalTagGLWidget::findPattern(cv::Mat image
 /****************************************************************************/
 /****************************************************************************/
 /****************************************************************************/
+cv::vector<cv::Point2f> LAUCalTagGLWidget::sortPoints(cv::vector<cv::Point> points)
+{
+    cv::Point2f center;
+    for (unsigned int n = 0; n < points.size(); n++) {
+        center += cv::Point2f((float)points[n].x, (float)points[n].y);
+    }
+    center = center / (float)points.size();
+
+    QList<float> angles;
+    QList<int> indices;
+    for (unsigned int n = 0; n < points.size(); n++) {
+        angles << atan2((float)points[n].y - center.y, (float)points[n].x - center.x);
+        indices << n;
+    }
+
+    // SORT ANGLES
+    for (int m = 0; m < (int)points.size() - 1; m++) {
+        for (int n = m + 1; n < (int)points.size(); n++) {
+            if (angles.at(m) > angles.at(n)) {
+                angles.swap(m, n);
+                indices.swap(m, n);
+            }
+        }
+    }
+
+    // RECONSTRUCT SQUARE IN CLOCKWISE ORDER
+    cv::vector<cv::Point2f> output;
+    for (unsigned int n = 0; n < points.size(); n++) {
+        output.push_back(cv::Point2f((float)points[indices.at(n)].x, (float)points[indices.at(n)].y));
+    }
+    return (output);
+}
+
+/****************************************************************************/
+/****************************************************************************/
+/****************************************************************************/
 cv::vector<cv::vector<cv::Point2f>> LAUCalTagGLWidget::organizeSquares(cv::vector<cv::vector<cv::Point2f>> squares)
 {
     cv::vector<cv::vector<cv::Point2f>> outputSquares;
@@ -1826,16 +1878,16 @@ cv::vector<cv::vector<cv::Point2f>> LAUCalTagGLWidget::organizeSquares(cv::vecto
     }
 
     // PRINT OUT A REPORT ON HOW IMAGE SQUARES ARE ALIGNED AND HOW THEY GET MAPPED TO CALTAG SQUARES
-    QFile file(QString("/tmp/organizeReport.txt"));
-    if (file.open(QIODevice::WriteOnly)) {
-        QTextStream stream(&file);
-        for (unsigned int n = 0; n < squares.size(); n++) {
-            for (int c = 0; c < 4; c++) {
-                stream << QString("%1, %2, %3, %4\n").arg(squares[n][c].x).arg(squares[n][c].y).arg(outputSquares[n][c].x).arg(outputSquares[n][c].y);
-            }
-        }
-        file.close();
-    }
+    //QFile file(QString("/tmp/organizeReport.txt"));
+    //if (file.open(QIODevice::WriteOnly)) {
+    //    QTextStream stream(&file);
+    //    for (unsigned int n = 0; n < squares.size(); n++) {
+    //        for (int c = 0; c < 4; c++) {
+    //            stream << QString("%1, %2, %3, %4\n").arg(squares[n][c].x).arg(squares[n][c].y).arg(outputSquares[n][c].x).arg(outputSquares[n][c].y);
+    //        }
+    //    }
+    //    file.close();
+    //}
 
     return (outputSquares);
 }
@@ -1893,14 +1945,14 @@ void LAUCalTagGLWidget::removeOutlierPoints(cv::vector<cv::Point2f> &fmPoints, c
     }
 
     // PRINT OUT A REPORT ON HOW IMAGE SQUARES ARE ALIGNED AND HOW THEY GET MAPPED TO CALTAG SQUARES
-    QFile file(QString("/tmp/outlierReport.txt"));
-    if (file.open(QIODevice::WriteOnly)) {
-        QTextStream stream(&file);
-        for (unsigned int n = 0; n < fmPoints.size(); n++) {
-            stream << QString("%1, %2, %3, %4\n").arg(fmPoints[n].x).arg(fmPoints[n].y).arg(toPoints[n].x).arg(toPoints[n].y);
-        }
-        file.close();
-    }
+    //QFile file(QString("/tmp/outlierReport.txt"));
+    //if (file.open(QIODevice::WriteOnly)) {
+    //    QTextStream stream(&file);
+    //    for (unsigned int n = 0; n < fmPoints.size(); n++) {
+    //        stream << QString("%1, %2, %3, %4\n").arg(fmPoints[n].x).arg(fmPoints[n].y).arg(toPoints[n].x).arg(toPoints[n].y);
+    //    }
+    //    file.close();
+    //}
 
     cv::Mat transform;
     unsigned int numIterations = fmPoints.size() * 0.15;

@@ -50,7 +50,7 @@ int main(int argc, char *argv[])
     format.setRenderableType(QSurfaceFormat::OpenGL);
     QSurfaceFormat::setDefaultFormat(format);
 
-#ifdef DONTCOMPILE
+#ifndef DONTCOMPILE
     LAUWebCameraDialog w(QCamera::CaptureVideo);
     if (w.isValid()) {
         return w.exec();

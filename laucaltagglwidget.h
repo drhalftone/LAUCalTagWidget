@@ -216,7 +216,9 @@ private:
     void dilationErosion(QOpenGLFramebufferObject *fboA, QOpenGLFramebufferObject *fboB);
     void removeOutlierPoints(cv::vector<cv::Point2f> &fmPoints, cv::vector<cv::Point2f> &toPoints);
 
-    cv::vector<cv::RotatedRect> regionArea(cv::Mat inImage);
+    cv::vector<cv::Point2f> sortPoints(cv::vector<cv::Point> points);
+    cv::vector<cv::RotatedRect> regionArea(cv::Mat sbImage);
+    cv::vector<cv::vector<cv::Point2f>> quadArea(cv::Mat inImage, cv::Mat sbImage);
     cv::vector<cv::vector<cv::Point2f>> findSaddles(cv::vector<cv::RotatedRect> rotatedRects);
     cv::vector<cv::vector<cv::Point2f>> findPattern(cv::Mat image, cv::vector<cv::vector<cv::Point2f>> squares);
     cv::vector<cv::vector<cv::Point2f>> organizeSquares(cv::vector<cv::vector<cv::Point2f>> squares);

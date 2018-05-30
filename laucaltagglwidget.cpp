@@ -33,6 +33,8 @@
 #include "laucaltagglwidget.h"
 #include "locale.h"
 
+using namespace LAUCalTag;
+
 // DEFINE LOOK-UP TABLE
 const unsigned char bridgeLutA[512] = { 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00,
                                         0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00,
@@ -648,32 +650,30 @@ void LAUCalTagGLWidget::process()
         testFBO(&frameBufferObjectD);
 
         // RESIZE THE BYTE ARRAYS AS NEEDED
-        memoryObject[0].resize(videoTexture->width()*videoTexture->height());
-        memoryObject[1].resize(videoTexture->width()*videoTexture->height());
-#ifdef QT_DEBUG
-        debugObject.resize(3 * videoTexture->width()*videoTexture->height());
-#endif
+        if (memoryObject[0].width() != videoTexture->width() || memoryObject[0].height() != videoTexture->height()) {
+            memoryObject[0] = LAUMemoryObject(videoTexture->width(), videoTexture->height(), 1, sizeof(unsigned char));
+            memoryObject[1] = LAUMemoryObject(videoTexture->width(), videoTexture->height(), 1, sizeof(unsigned char));
+            debugObject = LAUMemoryObject(videoTexture->width(), videoTexture->height(), 3, sizeof(unsigned char));
+        }
 
         // BINARIZE THE INCOMING BUFFER
         binarize(frameBufferObjectA, frameBufferObjectB, frameBufferObjectC);
         sobel(frameBufferObjectC, frameBufferObjectB);
         cleanUp(frameBufferObjectB, frameBufferObjectA);
-        dilationErosion(frameBufferObjectA, frameBufferObjectB);
+        //dilationErosion(frameBufferObjectA, frameBufferObjectB);
 
         // DOWNLOAD THE RESULTING BINARY TEXTURE TO OUR MEMORY BUFFER FOR FURTHER PROCESSING
-        glBindTexture(GL_TEXTURE_2D, frameBufferObjectB->texture());
+        glBindTexture(GL_TEXTURE_2D, frameBufferObjectA->texture());
         glPixelStorei(GL_PACK_ALIGNMENT, 1);
-        glGetTexImage(GL_TEXTURE_2D, 0, GL_RED, GL_UNSIGNED_BYTE, (unsigned char *)memoryObject[0].constData());
+        glGetTexImage(GL_TEXTURE_2D, 0, GL_RGB, GL_UNSIGNED_BYTE, (unsigned char *)debugObject.constPointer());
+        glGetTexImage(GL_TEXTURE_2D, 0, GL_RED, GL_UNSIGNED_BYTE, (unsigned char *)memoryObject[0].constPointer());
         glBindTexture(GL_TEXTURE_2D, frameBufferObjectC->texture());
         glPixelStorei(GL_PACK_ALIGNMENT, 1);
-        glGetTexImage(GL_TEXTURE_2D, 0, GL_RED, GL_UNSIGNED_BYTE, (unsigned char *)memoryObject[1].constData());
-#ifdef QT_DEBUG
-        glGetTexImage(GL_TEXTURE_2D, 0, GL_RGB, GL_UNSIGNED_BYTE, (unsigned char *)debugObject.constData());
-#endif
+        glGetTexImage(GL_TEXTURE_2D, 0, GL_RED, GL_UNSIGNED_BYTE, (unsigned char *)memoryObject[1].constPointer());
 
         // LOOK FOR CALTAGS AND GET THE CR TO XYZ TRANSFORM
         bool okay = false;
-        cv::Mat transform = detectCalTagGrid(&okay);
+        cv::Mat transform = detectCalTagGrid(memoryObject[0], memoryObject[1], debugObject, minBoxCount, minRegionArea, maxRegionArea, flipCalTagsFlag, gridPairings, &okay);
         float transformAsVector[30];
         for (int n = 0; n < 30; n++) {
             transformAsVector[n] = (float)transform.at<double>(n);
@@ -777,7 +777,7 @@ void LAUCalTagGLWidget::dilationErosion(QOpenGLFramebufferObject *fboA, QOpenGLF
 {
     // APPLY EROSION AS THE MIN FILTER OPERATION
     if (fboB && fboB->bind()) {
-        if (programG.bind()) {
+        if (programH.bind()) {
             // CLEAR THE FRAME BUFFER OBJECT
             glViewport(1, 1, fboB->width() - 2, fboB->height() - 2);
             glClearColor(0.0f, 0.0f, 0.0f, 0.0f);
@@ -789,14 +789,14 @@ void LAUCalTagGLWidget::dilationErosion(QOpenGLFramebufferObject *fboA, QOpenGLF
                     // BIND THE TEXTURE FROM THE FRAME BUFFER OBJECT
                     glActiveTexture(GL_TEXTURE0);
                     glBindTexture(GL_TEXTURE_2D, fboA->texture());
-                    programG.setUniformValue("qt_texture", 0);
+                    programH.setUniformValue("qt_texture", 0);
 
                     // SET THE MEDIAN FILTER RADIUS
-                    programG.setUniformValue("qt_radius", 1);
+                    programH.setUniformValue("qt_radius", 1);
 
                     // TELL OPENGL PROGRAMMABLE PIPELINE HOW TO LOCATE VERTEX POSITION DATA
-                    glVertexAttribPointer(programG.attributeLocation("qt_vertex"), 4, GL_FLOAT, GL_FALSE, 4 * sizeof(float), 0);
-                    programG.enableAttributeArray("qt_vertex");
+                    glVertexAttribPointer(programH.attributeLocation("qt_vertex"), 4, GL_FLOAT, GL_FALSE, 4 * sizeof(float), 0);
+                    programH.enableAttributeArray("qt_vertex");
                     glDrawElements(GL_TRIANGLES, 6, GL_UNSIGNED_INT, 0);
 
                     // RELEASE THE FRAME BUFFER OBJECT AND ITS ASSOCIATED GLSL PROGRAMS
@@ -804,7 +804,7 @@ void LAUCalTagGLWidget::dilationErosion(QOpenGLFramebufferObject *fboA, QOpenGLF
                 }
                 quadVertexBuffer.release();
             }
-            programG.release();
+            programH.release();
         }
         fboB->release();
     }
@@ -844,7 +844,7 @@ void LAUCalTagGLWidget::dilationErosion(QOpenGLFramebufferObject *fboA, QOpenGLF
     }
 
     // COPY THE RESCALED IMAGE BACK TO FRAME BUFFER OBJECT B
-    QOpenGLFramebufferObject::blitFramebuffer(fboA, fboB);
+    // QOpenGLFramebufferObject::blitFramebuffer(fboA, fboB);
 }
 
 /****************************************************************************/
@@ -1183,39 +1183,45 @@ void LAUCalTagGLWidget::binarize(QOpenGLFramebufferObject *fboA, QOpenGLFramebuf
 /***************************************************************************/
 /***************************************************************************/
 /***************************************************************************/
-cv::Mat LAUCalTagGLWidget::detectCalTagGrid(bool *okay)
+cv::Mat LAUCalTag::detectCalTagGrid(LAUMemoryObject sbObj, LAUMemoryObject inObj, LAUMemoryObject dbObj, int minBoxes, int minRegion, int maxRegion, bool flipCalTags, QList<Pairing> &pairings, bool *okay)
 {
     // CLEAR THE GRID PAIRINGS FROM ANY PREVIOUS CALL
-    gridPairings.clear();
+    pairings.clear();
 
     // CREATE A RETURN MATRIX
     cv::Mat localTransform(1, 30, CV_64F);
 
     // CREATE CV::MAT WRAPPER AROUND OUR MEMORY OBJECT
-    cv::Mat sbImage(videoTexture->height(), videoTexture->width(), CV_8UC1, (unsigned char *)memoryObject[0].constData(), videoTexture->width());
-    cv::Mat inImage(videoTexture->height(), videoTexture->width(), CV_8UC1, (unsigned char *)memoryObject[1].constData(), videoTexture->width());
+    cv::Mat sbImage(sbObj.height(), sbObj.width(), CV_8UC1, (unsigned char *)sbObj.constPointer(), sbObj.step());
+    cv::Mat inImage(inObj.height(), inObj.width(), CV_8UC1, (unsigned char *)inObj.constPointer(), inObj.step());
 #ifdef QT_DEBUG
-    cv::Mat dbImage(videoTexture->height(), videoTexture->width(), CV_8UC3, (unsigned char *)debugObject.constData(), 3 * videoTexture->width());
+    cv::Mat dbImage(dbObj.height(), dbObj.width(), CV_8UC3, (unsigned char *)dbObj.constPointer(), dbObj.step());
 #endif
-    cv::vector<cv::RotatedRect> rotatedRects = regionArea(sbImage);
-    cv::vector<cv::vector<cv::Point2f>> quads = quadArea(inImage, sbImage);
+    cv::vector<cv::RotatedRect> rotatedRects = regionArea(sbImage, dbImage, minRegion, maxRegion);
+    cv::vector<cv::vector<cv::Point2f>> quads = quadArea(inImage, sbImage, minRegion, maxRegion);
+
+    cv::imshow("", dbImage);
 
     // MAKE SURE WE HAVE ENOUGH DETECTED RECTANGLES
-    if (rotatedRects.size() > (unsigned long)minBoxCount) {
+    if (quads.size() > (unsigned long)minBoxes) {
         // GET A GOOD APPROXIMATION OF WHERE THE SADDLE POINTS ARE
         cv::vector<cv::vector<cv::Point2f>> squares = findSaddles(rotatedRects);
-#ifdef QT_DEBUG
-        for (unsigned int n = 0; n < squares.size(); n++) {
-            for (unsigned int m = 0; m < squares[n].size(); m++) {
-                cv::circle(dbImage, squares[n][m], 2, cv::Scalar(0, 0, 255), 2);
-            }
-        }
-#endif
+
         // ORGANIZE THE DETECTED SQUARES SO THEY ALL RUN THE SAME ORIENTATION
         squares = organizeSquares(squares);
 
         // DECODE THE CALTAG SQUARES
-        cv::vector<cv::vector<cv::Point2f>> coordinates = findPattern(inImage, quads);
+        cv::vector<cv::vector<cv::Point2f>> coordinates = findPattern(inImage, quads, flipCalTags);
+#ifdef QT_DEBUG
+        for (unsigned int n = 0; n < coordinates.size(); n++) {
+            for (unsigned int m = 0; m < coordinates[n].size(); m++) {
+                if (qIsNaN(coordinates[n][m].x * coordinates[n][m].y) == false) {
+                    cv::circle(dbImage, quads[n][m], 2, cv::Scalar(255, 0, 0), 5);
+                }
+            }
+        }
+        cv::imshow("", dbImage);
+#endif
 
         // PRINT OUT A REPORT ON HOW IMAGE SQUARES ARE ALIGNED AND HOW THEY GET MAPPED TO CALTAG SQUARES
         //QFile file(QString("/tmp/squaresReport.txt"));
@@ -1245,17 +1251,17 @@ cv::Mat LAUCalTagGLWidget::detectCalTagGrid(bool *okay)
         removeOutlierPoints(fmPoints, toPoints);
 
         // MAKE SURE WE HAVE ENOUGH DETECTED POINTS
-        if (toPoints.size() > (unsigned long)minBoxCount) {
+        if (toPoints.size() > (unsigned long)minBoxes) {
             // MAKE A LOCAL COPY OF THE POINT PAIRINGS
             for (unsigned int n = 0; n < toPoints.size() && n < fmPoints.size(); n++) {
                 Pairing pairing;
                 pairing.cr = QPoint(fmPoints[n].x, fmPoints[n].y);
                 pairing.xy = QPoint(toPoints[n].x, toPoints[n].y);
-                gridPairings << pairing;
+                pairings << pairing;
             }
 
             // FIND BEST TRANSFORM FROM CAMERA TO CALIBRATION WORLD COORDINATES
-            localTransform = findBestQuadraticMapping(fmPoints, toPoints, CALTAGSCANGLFILTERBESTFITTRANSFORMPOLYNOMIALORDER);
+            localTransform = findBestQuadraticMapping(fmPoints, toPoints, inObj.width(), inObj.height(), CALTAGSCANGLFILTERBESTFITTRANSFORMPOLYNOMIALORDER);
             if (okay) {
                 *okay = true;
             }
@@ -1279,7 +1285,7 @@ cv::Mat LAUCalTagGLWidget::detectCalTagGrid(bool *okay)
 /***************************************************************************/
 /***************************************************************************/
 /***************************************************************************/
-cv::vector<cv::vector<cv::Point2f>> LAUCalTagGLWidget::quadArea(cv::Mat inImage, cv::Mat sbImage)
+cv::vector<cv::vector<cv::Point2f>> LAUCalTag::quadArea(cv::Mat inImage, cv::Mat sbImage, int minArea, int maxArea)
 {
     // CREATE ASSOCIATED DATA STRUCTURES TO HOLD INTERMEDIATE RESULTS
     cv::vector<cv::vector<cv::Point>> contours;
@@ -1294,9 +1300,12 @@ cv::vector<cv::vector<cv::Point2f>> LAUCalTagGLWidget::quadArea(cv::Mat inImage,
     // FOR EACH CONTOUR, APPROXIMATE IT WITH A POLYGON
     for (unsigned int i = 0; i < contours.size(); ++i) {
         contoursPoly.push_back(contours[i]);
-        cv::approxPolyDP(contours[i], contoursPoly[i], 3, true);
+        cv::approxPolyDP(contours[i], contoursPoly[i], 3.0, true);
         if (contoursPoly[i].size() == 4 && cv::isContourConvex(contoursPoly[i])) {
-            quadrilaterals.push_back(sortPoints(contoursPoly[i]));
+            int area = cv::contourArea(contoursPoly[i]);
+            if (area > minArea && area < maxArea) {
+                quadrilaterals.push_back(sortPoints(contoursPoly[i]));
+            }
         }
     }
 
@@ -1306,16 +1315,12 @@ cv::vector<cv::vector<cv::Point2f>> LAUCalTagGLWidget::quadArea(cv::Mat inImage,
 /***************************************************************************/
 /***************************************************************************/
 /***************************************************************************/
-cv::vector<cv::RotatedRect> LAUCalTagGLWidget::regionArea(cv::Mat sbImage)
+cv::vector<cv::RotatedRect> LAUCalTag::regionArea(cv::Mat sbImage, cv::Mat dbImage, int minArea, int maxArea)
 {
     // CREATE ASSOCIATED DATA STRUCTURES TO HOLD INTERMEDIATE RESULTS
     cv::vector<cv::vector<cv::Point>> contours;
     cv::vector<cv::RotatedRect> rotatedRects;
     cv::vector<cv::Vec4i> hierarchy;
-#ifdef QT_DEBUG
-    // CREATE A DEBUG IMAGE TO DRAW INTO
-    cv::Mat dbImage(videoTexture->height(), videoTexture->width(), CV_8UC3, (unsigned char *)debugObject.constData(), 3 * videoTexture->width());
-#endif
 
     // SEARCH AND STORE ANY CONTOURS IN THE IMAGE
     cv::findContours(sbImage.clone(), contours, hierarchy, CV_RETR_TREE, CV_CHAIN_APPROX_NONE, cv::Point(0, 0));
@@ -1330,7 +1335,7 @@ cv::vector<cv::RotatedRect> LAUCalTagGLWidget::regionArea(cv::Mat sbImage)
     // FOR EACH CONTOUR, APPROXIMATE IT WITH A POLYGON
     for (unsigned int i = 0; i < contours.size(); ++i) {
         contoursPoly.push_back(contours[i]);
-        cv::approxPolyDP(contours[i], contoursPoly[i], 3, true);
+        cv::approxPolyDP(contours[i], contoursPoly[i], 3.0, true);
     }
 
     // USE THE HEIRARCHY FROM FINDCONTOURS TO NARROW THE NUMBER OF POSSIBLE REGIONS
@@ -1346,8 +1351,8 @@ cv::vector<cv::RotatedRect> LAUCalTagGLWidget::regionArea(cv::Mat sbImage)
     for (unsigned int i = 0; i < rectangles.size(); ++i) {
         cv::Point2f vertices[4];
         rectangles[i].points(vertices);
-        if ((rectangles[i].size.width * rectangles[i].size.height) > minRegionArea) {
-            if ((rectangles[i].size.width * rectangles[i].size.height) < maxRegionArea) {
+        if ((rectangles[i].size.width * rectangles[i].size.height) > minArea) {
+            if ((rectangles[i].size.width * rectangles[i].size.height) < maxArea) {
                 if (rectangles[i].size.width >= (0.8 * rectangles[i].size.height)) {
                     if (rectangles[i].size.width <= (1.2 * rectangles[i].size.height)) {
                         bestRectangles.push_back(rectangles[i]);
@@ -1409,7 +1414,7 @@ cv::vector<cv::RotatedRect> LAUCalTagGLWidget::regionArea(cv::Mat sbImage)
 /***************************************************************************/
 /***************************************************************************/
 /***************************************************************************/
-cv::vector<cv::vector<cv::Point2f>> LAUCalTagGLWidget::findSaddles(cv::vector<cv::RotatedRect> rotatedRects)
+cv::vector<cv::vector<cv::Point2f>> LAUCalTag::findSaddles(cv::vector<cv::RotatedRect> rotatedRects)
 {
     // WE HAVE THE INDICES FOR THE CHECKERBOARD REGIONS, BUT SOME OF THEM ARE SHARED.
     // WE WANT A COMPREHENSIVE LIST OF ALL THE SADDLE POINTS, BUT WITHOUT REPEATS.
@@ -1505,7 +1510,7 @@ cv::vector<cv::vector<cv::Point2f>> LAUCalTagGLWidget::findSaddles(cv::vector<cv
 /****************************************************************************/
 /****************************************************************************/
 /****************************************************************************/
-cv::vector<cv::vector<cv::Point2f>> LAUCalTagGLWidget::findPattern(cv::Mat image, cv::vector<cv::vector<cv::Point2f>> squares)
+cv::vector<cv::vector<cv::Point2f>> LAUCalTag::findPattern(cv::Mat inImage, cv::vector<cv::vector<cv::Point2f>> squares, bool flipCalTags)
 {
     // CREATE OUTPUT DATA STRUCTURE
     cv::vector<cv::vector<cv::Point2f>> outputSquares;
@@ -1564,12 +1569,12 @@ cv::vector<cv::vector<cv::Point2f>> LAUCalTagGLWidget::findPattern(cv::Mat image
             int col = qRound(kgPoints[i].x / kgPoints[i].z);
 
             // MAKE SURE THE CURRENT COORDINATE IS WITHIN THE BOUNDS OF THE IMAGE
-            if (row > 0 && row < image.rows - 1) {
-                if (col > 0 && col < image.cols - 1) {
+            if (row > 0 && row < inImage.rows - 1) {
+                if (col > 0 && col < inImage.cols - 1) {
                     int sum = 0;
                     for (int r = row - 1; r < row + 2; r++) {
                         for (int c = col - 1; c < col + 2; c++) {
-                            sum += (image.at<unsigned char>(r, c) > 128);
+                            sum += (inImage.at<unsigned char>(r, c) > 128);
                         }
                     }
                     // COPY THE CURRENT BIT TO THE CODE MATRIX
@@ -1584,7 +1589,7 @@ cv::vector<cv::vector<cv::Point2f>> LAUCalTagGLWidget::findPattern(cv::Mat image
 
         // FLIP THE CODE MATRIX LEFT-RIGHT IN CASE WE ARE
         // LOOKING AT THE TARGET FROM BEHIND WITH BACK LIGHTING
-        if (flipCalTagsFlag) {
+        if (flipCalTags) {
             cv::flip(codeMatrix, codeMatrix, 1);
         }
 
@@ -1648,12 +1653,12 @@ cv::vector<cv::vector<cv::Point2f>> LAUCalTagGLWidget::findPattern(cv::Mat image
             int col = qRound(kgPoints[i].x / kgPoints[i].z);
 
             // MAKE SURE THE CURRENT COORDINATE IS WITHIN THE BOUNDS OF THE IMAGE
-            if (row > 0 && row < image.rows - 1) {
-                if (col > 0 && col < image.cols - 1) {
+            if (row > 0 && row < inImage.rows - 1) {
+                if (col > 0 && col < inImage.cols - 1) {
                     int sum = 0;
                     for (int r = row - 1; r < row + 2; r++) {
                         for (int c = col - 1; c < col + 2; c++) {
-                            sum += (image.at<unsigned char>(r, c) > 128);
+                            sum += (inImage.at<unsigned char>(r, c) > 128);
                         }
                     }
                     // COPY THE CURRENT BIT TO THE CODE MATRIX
@@ -1668,7 +1673,7 @@ cv::vector<cv::vector<cv::Point2f>> LAUCalTagGLWidget::findPattern(cv::Mat image
 
         // FLIP THE CODE MATRIX LEFT-RIGHT IN CASE WE ARE
         // LOOKING AT THE TARGET FROM BEHIND WITH BACK LIGHTING
-        if (flipCalTagsFlag) {
+        if (flipCalTags) {
             cv::flip(codeMatrix, codeMatrix, 1);
 
             cv::Point2f point;
@@ -1803,7 +1808,7 @@ cv::vector<cv::vector<cv::Point2f>> LAUCalTagGLWidget::findPattern(cv::Mat image
 /****************************************************************************/
 /****************************************************************************/
 /****************************************************************************/
-cv::vector<cv::Point2f> LAUCalTagGLWidget::sortPoints(cv::vector<cv::Point> points)
+cv::vector<cv::Point2f> LAUCalTag::sortPoints(cv::vector<cv::Point> points)
 {
     cv::Point2f center;
     for (unsigned int n = 0; n < points.size(); n++) {
@@ -1839,7 +1844,7 @@ cv::vector<cv::Point2f> LAUCalTagGLWidget::sortPoints(cv::vector<cv::Point> poin
 /****************************************************************************/
 /****************************************************************************/
 /****************************************************************************/
-cv::vector<cv::vector<cv::Point2f>> LAUCalTagGLWidget::organizeSquares(cv::vector<cv::vector<cv::Point2f>> squares)
+cv::vector<cv::vector<cv::Point2f>> LAUCalTag::organizeSquares(cv::vector<cv::vector<cv::Point2f>> squares)
 {
     cv::vector<cv::vector<cv::Point2f>> outputSquares;
 
@@ -1895,7 +1900,7 @@ cv::vector<cv::vector<cv::Point2f>> LAUCalTagGLWidget::organizeSquares(cv::vecto
 /****************************************************************************/
 /****************************************************************************/
 /****************************************************************************/
-bool LAUCalTagGLWidget::checkBitCode(int code, cv::Point2f *pt)
+bool LAUCalTag::checkBitCode(int code, cv::Point2f *pt)
 {
     // DEFINE LOOK-UP TABLE
     static const int realBitCodes[20][14] = {
@@ -1937,7 +1942,7 @@ bool LAUCalTagGLWidget::checkBitCode(int code, cv::Point2f *pt)
 /******************************************************************************/
 /******************************************************************************/
 /******************************************************************************/
-void LAUCalTagGLWidget::removeOutlierPoints(cv::vector<cv::Point2f> &fmPoints, cv::vector<cv::Point2f> &toPoints)
+void LAUCalTag::removeOutlierPoints(cv::vector<cv::Point2f> &fmPoints, cv::vector<cv::Point2f> &toPoints)
 {
     // MAKE SURE WE HAVE ENOUGH POINTS TO MAKE THIS WORTH WHILE
     if (fmPoints.size() < 20) {
@@ -1994,7 +1999,7 @@ void LAUCalTagGLWidget::removeOutlierPoints(cv::vector<cv::Point2f> &fmPoints, c
 /******************************************************************************/
 /******************************************************************************/
 /******************************************************************************/
-cv::Mat LAUCalTagGLWidget::findBestLinearMapping(cv::vector<cv::Point2f> fmPoints, cv::vector<cv::Point2f> toPoints)
+cv::Mat LAUCalTag::findBestLinearMapping(cv::vector<cv::Point2f> fmPoints, cv::vector<cv::Point2f> toPoints)
 {
     cv::Mat transformMatrix(3, 3, CV_64F);
 
@@ -2047,7 +2052,7 @@ cv::Mat LAUCalTagGLWidget::findBestLinearMapping(cv::vector<cv::Point2f> fmPoint
 /****************************************************************************/
 /****************************************************************************/
 /****************************************************************************/
-cv::Mat LAUCalTagGLWidget::findBestQuadraticMapping(cv::vector<cv::Point2f> fmPoints, cv::vector<cv::Point2f> toPoints, int order)
+cv::Mat LAUCalTag::findBestQuadraticMapping(cv::vector<cv::Point2f> fmPoints, cv::vector<cv::Point2f> toPoints, int width, int height, int order)
 {
     cv::Mat lVec(30, 1, CV_64F);
     lVec.setTo(0.0);
@@ -2062,8 +2067,8 @@ cv::Mat LAUCalTagGLWidget::findBestQuadraticMapping(cv::vector<cv::Point2f> fmPo
 
     // COPY DATA FROM CLUSTER LIST INTO DATA VECTORS
     for (int n = 0; n < numPoints; n++) {
-        cVec[n] = (fmPoints[n].x - videoTexture->width() / 2) / 50.0;
-        rVec[n] = (fmPoints[n].y - videoTexture->height() / 2) / 50.0;
+        cVec[n] = (fmPoints[n].x - (width / 2)) / 50.0;
+        rVec[n] = (fmPoints[n].y - (height / 2)) / 50.0;
         xVec[n] = toPoints[n].x;
         yVec[n] = toPoints[n].y;
     }

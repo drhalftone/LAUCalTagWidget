@@ -10,7 +10,7 @@ void main()
     // GET THE FRAGMENT PIXEL COORDINATE
     ivec2 coord = ivec2(gl_FragCoord.xy);
 
-    qt_fragColor = vec4(0.0, 0.0, 0.0, 0.0);
+    qt_fragColor = vec4(1.0, 1.0, 1.0, 1.0);
     for (int r = -qt_radius; r <= qt_radius; r++){
         for (int c = -qt_radius; c <= qt_radius; c++){
             qt_fragColor = min(qt_fragColor, texelFetch(qt_texture, ivec2(c,r) + coord, 0));

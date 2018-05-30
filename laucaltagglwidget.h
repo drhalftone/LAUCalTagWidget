@@ -68,6 +68,40 @@ namespace cv
 #define CALTAGSCANGLFILTERBESTFITTRANSFORMPOLYNOMIALORDER   2
 #define CALTAGSCANGLFILTERDISTANCEFROMGRIDPOINTTHRESHOLD    0.10f
 
+namespace LAUCalTag
+{
+    typedef struct {
+        QPoint cr;
+        QPoint xy;
+    } Pairing;
+
+    static void removeOutlierPoints(cv::vector<cv::Point2f> &fmPoints, cv::vector<cv::Point2f> &toPoints);
+
+    static cv::vector<cv::Point2f> sortPoints(cv::vector<cv::Point> points);
+    static cv::vector<cv::RotatedRect> regionArea(cv::Mat sbImage, cv::Mat dbImage, int minArea, int maxArea);
+    static cv::vector<cv::vector<cv::Point2f>> quadArea(cv::Mat inImage, cv::Mat sbImage, int minArea, int maxArea);
+    static cv::vector<cv::vector<cv::Point2f>> findSaddles(cv::vector<cv::RotatedRect> rotatedRects);
+    static cv::vector<cv::vector<cv::Point2f>> findPattern(cv::Mat inImage, cv::vector<cv::vector<cv::Point2f>> squares, bool flipCalTags);
+    static cv::vector<cv::vector<cv::Point2f>> organizeSquares(cv::vector<cv::vector<cv::Point2f>> squares);
+
+    static cv::Mat detectCalTagGrid(LAUMemoryObject inObj, LAUMemoryObject sbObj, LAUMemoryObject dbObj, int minBoxes, int minArea, int maxArea, bool flipCalTags, QList<Pairing> &pairings, bool *okay = NULL);
+    static cv::Mat findBestQuadraticMapping(cv::vector<cv::Point2f> fmPoints, cv::vector<cv::Point2f> toPoints, int width, int height, int order = 4);
+    static cv::Mat findBestLinearMapping(cv::vector<cv::Point2f> fmPoints, cv::vector<cv::Point2f> toPoints);
+
+    static float length(cv::Point2f point)
+    {
+        return (sqrt(point.x * point.x + point.y * point.y));
+    }
+
+    static float angle(cv::Point2f point)
+    {
+        return (atan2(point.y, point.x));
+    }
+
+    static  void transform(cv::Mat inMat, cv::Mat outMat, cv::Mat transformMatrix);
+    static  bool checkBitCode(int code, cv::Point2f *pt);
+}
+
 /****************************************************************************/
 /****************************************************************************/
 /****************************************************************************/
@@ -176,12 +210,7 @@ protected:
     void paint();
 
 private:
-    typedef struct {
-        QPoint cr;
-        QPoint xy;
-    } Pairing;
-
-    QList<Pairing> gridPairings;            // KEEP TRACK OF THE LAST SET OF GRID POINT PAIRINGS
+    QList<LAUCalTag::Pairing> gridPairings;            // KEEP TRACK OF THE LAST SET OF GRID POINT PAIRINGS
 
     float quantizationOffset;
     unsigned int medianFilterRadius;
@@ -193,10 +222,8 @@ private:
     int minBoxCount;       // MINIMUM BOX AREA
     bool flipCalTagsFlag;  // IS THE TARGET BACKLIT?
 
-    QByteArray memoryObject[2];
-#ifdef QT_DEBUG
-    QByteArray debugObject;
-#endif
+    LAUMemoryObject memoryObject[2];
+    LAUMemoryObject debugObject;
 
     QOpenGLShaderProgram programA, programB, programC;
     QOpenGLShaderProgram programD, programE, programF;
@@ -214,31 +241,6 @@ private:
     void sobel(QOpenGLFramebufferObject *fboA, QOpenGLFramebufferObject *fboB);
     void cleanUp(QOpenGLFramebufferObject *fboA, QOpenGLFramebufferObject *fboB);
     void dilationErosion(QOpenGLFramebufferObject *fboA, QOpenGLFramebufferObject *fboB);
-    void removeOutlierPoints(cv::vector<cv::Point2f> &fmPoints, cv::vector<cv::Point2f> &toPoints);
-
-    cv::vector<cv::Point2f> sortPoints(cv::vector<cv::Point> points);
-    cv::vector<cv::RotatedRect> regionArea(cv::Mat sbImage);
-    cv::vector<cv::vector<cv::Point2f>> quadArea(cv::Mat inImage, cv::Mat sbImage);
-    cv::vector<cv::vector<cv::Point2f>> findSaddles(cv::vector<cv::RotatedRect> rotatedRects);
-    cv::vector<cv::vector<cv::Point2f>> findPattern(cv::Mat image, cv::vector<cv::vector<cv::Point2f>> squares);
-    cv::vector<cv::vector<cv::Point2f>> organizeSquares(cv::vector<cv::vector<cv::Point2f>> squares);
-
-    cv::Mat detectCalTagGrid(bool *okay = NULL);
-    cv::Mat findBestQuadraticMapping(cv::vector<cv::Point2f> fmPoints, cv::vector<cv::Point2f> toPoints, int order = 4);
-    cv::Mat findBestLinearMapping(cv::vector<cv::Point2f> fmPoints, cv::vector<cv::Point2f> toPoints);
-
-    static float length(cv::Point2f point)
-    {
-        return (sqrt(point.x * point.x + point.y * point.y));
-    }
-
-    static float angle(cv::Point2f point)
-    {
-        return (atan2(point.y, point.x));
-    }
-
-    static  void transform(cv::Mat inMat, cv::Mat outMat, cv::Mat transformMatrix);
-    static  bool checkBitCode(int code, cv::Point2f *pt);
 };
 
 /****************************************************************************/

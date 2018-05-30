@@ -78,7 +78,11 @@ namespace LAUCalTag
         QPoint xy;
     } Pairing;
 
+#ifdef QT_DEBUG
     cv::Mat detectCalTagGrid(LAUMemoryObject inObj, LAUMemoryObject sbObj, LAUMemoryObject dbObj, int minBoxes, int minArea, int maxArea, bool flipCalTags, QList<Pairing> &pairings, bool *okay = NULL);
+#else
+    cv::Mat detectCalTagGrid(LAUMemoryObject inObj, LAUMemoryObject sbObj, int minBoxes, int minArea, int maxArea, bool flipCalTags, QList<Pairing> &pairings, bool *okay = NULL);
+#endif
     cv::Mat findBestQuadraticMapping(cv::vector<cv::Point2f> fmPoints, cv::vector<cv::Point2f> toPoints, int width, int height, int order = 4);
     cv::Mat findBestLinearMapping(cv::vector<cv::Point2f> fmPoints, cv::vector<cv::Point2f> toPoints);
 
@@ -216,7 +220,9 @@ private:
     bool flipCalTagsFlag;  // IS THE TARGET BACKLIT?
 
     LAUMemoryObject memoryObject[2];
+#ifdef QT_DEBUG
     LAUMemoryObject debugObject;
+#endif
 
     QOpenGLShaderProgram programA, programB, programC;
     QOpenGLShaderProgram programD, programE, programF;

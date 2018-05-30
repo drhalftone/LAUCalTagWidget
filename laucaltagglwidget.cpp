@@ -551,7 +551,9 @@ void LAUCalTagGLWidget::process()
         if (memoryObject[0].width() != videoTexture->width() || memoryObject[0].height() != videoTexture->height()) {
             memoryObject[0] = LAUMemoryObject(videoTexture->width(), videoTexture->height(), 1, sizeof(unsigned char));
             memoryObject[1] = LAUMemoryObject(videoTexture->width(), videoTexture->height(), 1, sizeof(unsigned char));
+#ifdef QT_DEBUG
             debugObject = LAUMemoryObject(videoTexture->width(), videoTexture->height(), 3, sizeof(unsigned char));
+#endif
         }
 
         // BINARIZE THE INCOMING BUFFER
@@ -563,27 +565,34 @@ void LAUCalTagGLWidget::process()
         // DOWNLOAD THE RESULTING BINARY TEXTURE TO OUR MEMORY BUFFER FOR FURTHER PROCESSING
         glBindTexture(GL_TEXTURE_2D, frameBufferObjectA->texture());
         glPixelStorei(GL_PACK_ALIGNMENT, 1);
-        glGetTexImage(GL_TEXTURE_2D, 0, GL_RGB, GL_UNSIGNED_BYTE, (unsigned char *)debugObject.constPointer());
         glGetTexImage(GL_TEXTURE_2D, 0, GL_RED, GL_UNSIGNED_BYTE, (unsigned char *)memoryObject[0].constPointer());
+
         glBindTexture(GL_TEXTURE_2D, frameBufferObjectC->texture());
         glPixelStorei(GL_PACK_ALIGNMENT, 1);
         glGetTexImage(GL_TEXTURE_2D, 0, GL_RED, GL_UNSIGNED_BYTE, (unsigned char *)memoryObject[1].constPointer());
 
         // LOOK FOR CALTAGS AND GET THE CR TO XYZ TRANSFORM
         bool okay = false;
+#ifdef QT_DEBUG
+        glBindTexture(GL_TEXTURE_2D, frameBufferObjectA->texture());
+        glPixelStorei(GL_PACK_ALIGNMENT, 1);
+        glGetTexImage(GL_TEXTURE_2D, 0, GL_RGB, GL_UNSIGNED_BYTE, (unsigned char *)debugObject.constPointer());
         cv::Mat transform = detectCalTagGrid(memoryObject[0], memoryObject[1], debugObject, minBoxCount, minRegionArea, maxRegionArea, flipCalTagsFlag, gridPairings, &okay);
+#else
+        cv::Mat transform = detectCalTagGrid(memoryObject[0], memoryObject[1], minBoxCount, minRegionArea, maxRegionArea, flipCalTagsFlag, gridPairings, &okay);
+#endif
         float transformAsVector[30];
         for (int n = 0; n < 30; n++) {
             transformAsVector[n] = (float)transform.at<double>(n);
         }
-        qDebug() << "Detected grid:" << okay;
+        qDebug() << transformAsVector[0];
 
         // DRAW THE BEST-FIT XY PLANE TO SCREEN WITH THE BINARY IMAGE
         if (frameBufferObjectB && frameBufferObjectB->bind()) {
             if (programJ.bind()) {
                 // CLEAR THE FRAME BUFFER OBJECT
                 glViewport(0, 0, frameBufferObjectB->width(), frameBufferObjectB->height());
-                glClearColor(0.0f, 0.0f, 0.0f, 0.0f);
+                glClearColor(NAN, NAN, NAN, NAN);
                 glClear(GL_COLOR_BUFFER_BIT);
 
                 // BIND VBOS FOR DRAWING TRIANGLES ON SCREEN
@@ -626,7 +635,8 @@ void LAUCalTagGLWidget::paint()
     } else {
         // SET THE VIEW PORT AND CLEAR THE SCREEN BUFFER
         glViewport(0, 0, localWidth, localHeight);
-        glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
+        glClearColor(0.0f, 0.0f, 0.0f, 0.0f);
+        glClear(GL_COLOR_BUFFER_BIT);
 
         // DISPLAY THE LAST FBO IN OUR LIST
         if (videoTexture) {
@@ -1081,7 +1091,11 @@ void LAUCalTagGLWidget::binarize(QOpenGLFramebufferObject *fboA, QOpenGLFramebuf
 /***************************************************************************/
 /***************************************************************************/
 /***************************************************************************/
+#ifdef QT_DEBUG
 cv::Mat LAUCalTag::detectCalTagGrid(LAUMemoryObject sbObj, LAUMemoryObject inObj, LAUMemoryObject dbObj, int minBoxes, int minRegion, int maxRegion, bool flipCalTags, QList<Pairing> &pairings, bool *okay)
+#else
+cv::Mat LAUCalTag::detectCalTagGrid(LAUMemoryObject sbObj, LAUMemoryObject inObj, int minBoxes, int minRegion, int maxRegion, bool flipCalTags, QList<Pairing> &pairings, bool *okay)
+#endif
 {
     qDebug() << minBoxes << minRegion << maxRegion << flipCalTags;
 
@@ -1097,9 +1111,9 @@ cv::Mat LAUCalTag::detectCalTagGrid(LAUMemoryObject sbObj, LAUMemoryObject inObj
 #ifdef QT_DEBUG
     cv::Mat dbImage(dbObj.height(), dbObj.width(), CV_8UC3, (unsigned char *)dbObj.constPointer(), dbObj.step());
 #endif
-    cv::vector<cv::vector<cv::Point2f>> quads = quadArea(inImage, sbImage, minRegion, maxRegion);
 
-    //cv::imshow("", dbImage);
+    // FIND QUADRILATERALS IN THE SOBEL EDGE IMAGE
+    cv::vector<cv::vector<cv::Point2f>> quads = quadArea(inImage, sbImage, minRegion, maxRegion);
 
     // GET A GOOD APPROXIMATION OF WHERE THE SADDLE POINTS ARE
     quads = findSaddles(quads);

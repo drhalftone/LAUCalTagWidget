@@ -9,7 +9,7 @@ void main()
 {
     // CONVERT THE TEXTURE COORDINATE TO PIXEL COORDINATE
     ivec2 size = textureSize(qt_texture, 0);
-    ivec2 coord = ivec2(round(vec2(size) * qt_coordinate));
+    ivec2 coord = ivec2(round(vec2(size-ivec2(1, 1)) * qt_coordinate));
 
     // GET THE PIXEL COORDINATE OF THE CURRENT FRAGMENT
     qt_fragColor = texelFetch(qt_texture, coord, 0);

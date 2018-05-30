@@ -187,24 +187,7 @@ const unsigned char bridgeLutD[512] = { 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00
 /****************************************************************************/
 /****************************************************************************/
 /****************************************************************************/
-LAUCalTagWidget::LAUCalTagWidget(QImage image, QWidget *parent) : QWidget(parent), glWidget(NULL)
-{
-    initialize();
-    glWidget->setFrame(image);
-}
-
-/****************************************************************************/
-/****************************************************************************/
-/****************************************************************************/
-LAUCalTagWidget::LAUCalTagWidget(QWidget *parent) : QWidget(parent), glWidget(NULL)
-{
-    initialize();
-}
-
-/****************************************************************************/
-/****************************************************************************/
-/****************************************************************************/
-void LAUCalTagWidget::initialize()
+LAUCalTagWidget::LAUCalTagWidget(QImage image, QWidget *parent) : QWidget(parent), glWidget(NULL), widget(NULL)
 {
     this->setLayout(new QVBoxLayout());
     this->setWindowTitle(QString("LAUCalTag Dialog"));
@@ -216,140 +199,31 @@ void LAUCalTagWidget::initialize()
     glWidget->setSizePolicy(QSizePolicy::Expanding, QSizePolicy::Expanding);
     this->layout()->addWidget(glWidget);
 
-    QGroupBox *box = new QGroupBox(QString("Binarize Parameters"));
-    box->setSizePolicy(QSizePolicy::Expanding, QSizePolicy::Minimum);
-    box->setLayout(new QGridLayout());
-    box->layout()->setContentsMargins(6, 6, 6, 6);
-    ((QGridLayout *)(box->layout()))->setColumnStretch(0, 100);
-    ((QGridLayout *)(box->layout()))->setColumnMinimumWidth(2, 160);
-    this->layout()->addWidget(box);
+    widget = new LAUCalTagFilterWidget(glWidget);
+    widget->load();
+    this->layout()->addWidget(widget);
 
-    iterSpinBox = new QSpinBox();
-    iterSpinBox->setMinimum(1);
-    iterSpinBox->setMaximum(5);
-    iterSpinBox->setFixedWidth(80);
-    iterSpinBox->setAlignment(Qt::AlignRight);
-    connect(iterSpinBox, SIGNAL(valueChanged(int)), glWidget, SLOT(onSetIterations(int)));
+    glWidget->setFrame(image);
+}
 
-    QLabel *label = new QLabel(QString("Gaussian Smoother Iterations:"));
-    label->setSizePolicy(QSizePolicy::Expanding, QSizePolicy::Fixed);
-    label->setAlignment(Qt::AlignRight);
-    ((QGridLayout *)(box->layout()))->addWidget(label, 0, 0, 1, 1, Qt::AlignRight);
-    ((QGridLayout *)(box->layout()))->addWidget(iterSpinBox, 0, 1, 1, 1, Qt::AlignLeft);
+/****************************************************************************/
+/****************************************************************************/
+/****************************************************************************/
+LAUCalTagWidget::LAUCalTagWidget(QWidget *parent) : QWidget(parent), glWidget(NULL), widget(NULL)
+{
+    this->setLayout(new QVBoxLayout());
+    this->setWindowTitle(QString("LAUCalTag Dialog"));
+    this->layout()->setContentsMargins(6, 6, 6, 6);
+    this->layout()->setSpacing(10);
 
-    gausSpinBox = new QSpinBox();
-    gausSpinBox->setMinimum(1);
-    gausSpinBox->setMaximum(127);
-    gausSpinBox->setFixedWidth(80);
-    gausSpinBox->setAlignment(Qt::AlignRight);
-    connect(gausSpinBox, SIGNAL(valueChanged(int)), glWidget, SLOT(onSetGaussianRadius(int)));
+    glWidget = new LAUCalTagGLWidget();
+    glWidget->setMinimumSize(320, 240);
+    glWidget->setSizePolicy(QSizePolicy::Expanding, QSizePolicy::Expanding);
+    this->layout()->addWidget(glWidget);
 
-    label = new QLabel(QString("Guassian Smoother Radius:"));
-    label->setSizePolicy(QSizePolicy::Expanding, QSizePolicy::Fixed);
-    label->setAlignment(Qt::AlignRight);
-    ((QGridLayout *)(box->layout()))->addWidget(label, 0, 2, 1, 1, Qt::AlignRight);
-    ((QGridLayout *)(box->layout()))->addWidget(gausSpinBox, 0, 3, 1, 1, Qt::AlignLeft);
-
-    offsetSpinBox = new QDoubleSpinBox();
-    offsetSpinBox->setMinimum(-1.0);
-    offsetSpinBox->setMaximum(1.0);
-    offsetSpinBox->setSingleStep(0.01);
-    offsetSpinBox->setFixedWidth(80);
-    offsetSpinBox->setAlignment(Qt::AlignRight);
-    connect(offsetSpinBox, SIGNAL(valueChanged(double)), glWidget, SLOT(onSetOffset(double)));
-
-    label = new QLabel(QString("Gaussian Filter Offset:"));
-    label->setSizePolicy(QSizePolicy::Expanding, QSizePolicy::Fixed);
-    label->setAlignment(Qt::AlignRight);
-    ((QGridLayout *)(box->layout()))->addWidget(label, 1, 0, 1, 1, Qt::AlignRight);
-    ((QGridLayout *)(box->layout()))->addWidget(offsetSpinBox, 1, 1, 1, 1, Qt::AlignLeft);
-
-    mednSpinBox = new QSpinBox();
-    mednSpinBox->setMinimum(0);
-    mednSpinBox->setMaximum(127);
-    mednSpinBox->setFixedWidth(80);
-    mednSpinBox->setAlignment(Qt::AlignRight);
-    connect(mednSpinBox, SIGNAL(valueChanged(int)), glWidget, SLOT(onSetMedianRadius(int)));
-
-    label = new QLabel(QString("Median Smoother Radius:"));
-    label->setSizePolicy(QSizePolicy::Expanding, QSizePolicy::Fixed);
-    label->setAlignment(Qt::AlignRight);
-    ((QGridLayout *)(box->layout()))->addWidget(label, 1, 2, 1, 1, Qt::AlignRight);
-    ((QGridLayout *)(box->layout()))->addWidget(mednSpinBox, 1, 3, 1, 1, Qt::AlignLeft);
-
-    box = new QGroupBox(QString("CalTag Parameters"));
-    box->setSizePolicy(QSizePolicy::Expanding, QSizePolicy::Minimum);
-    box->setLayout(new QGridLayout());
-    box->layout()->setContentsMargins(6, 6, 6, 6);
-    ((QGridLayout *)(box->layout()))->setColumnStretch(0, 100);
-    ((QGridLayout *)(box->layout()))->setColumnMinimumWidth(2, 160);
-    this->layout()->addWidget(box);
-
-    minRegionArea = new QSpinBox();
-    minRegionArea->setMinimum(0);
-    minRegionArea->setMaximum(1000000);
-    minRegionArea->setValue(128 - 32);
-    minRegionArea->setFixedWidth(80);
-    connect(minRegionArea, SIGNAL(valueChanged(int)), glWidget, SLOT(onSetMinRegionArea(int)));
-
-    label = new QLabel(QString("Minimum Region Area:"));
-    label->setSizePolicy(QSizePolicy::Expanding, QSizePolicy::Fixed);
-    label->setAlignment(Qt::AlignRight);
-    ((QGridLayout *)(box->layout()))->addWidget(label, 0, 0, 1, 1, Qt::AlignRight);
-    ((QGridLayout *)(box->layout()))->addWidget(minRegionArea, 0, 1, 1, 1, Qt::AlignLeft);
-
-    maxRegionArea = new QSpinBox();
-    maxRegionArea->setMinimum(0);
-    maxRegionArea->setMaximum(1000000);
-    maxRegionArea->setValue((640 * 480) / 16);
-    maxRegionArea->setFixedWidth(80);
-    connect(maxRegionArea, SIGNAL(valueChanged(int)), glWidget, SLOT(onSetMaxRegionArea(int)));
-
-    label = new QLabel(QString("Maximum Region Area:"));
-    label->setSizePolicy(QSizePolicy::Expanding, QSizePolicy::Fixed);
-    label->setAlignment(Qt::AlignRight);
-    ((QGridLayout *)(box->layout()))->addWidget(label, 0, 2, 1, 1, Qt::AlignRight);
-    ((QGridLayout *)(box->layout()))->addWidget(maxRegionArea, 0, 3, 1, 1, Qt::AlignLeft);
-
-    minBoxCount = new QSpinBox();
-    minBoxCount->setMinimum(0);
-    minBoxCount->setMaximum(1000000);
-    minBoxCount->setValue(128);
-    minBoxCount->setFixedWidth(80);
-    connect(minBoxCount, SIGNAL(valueChanged(int)), glWidget, SLOT(onSetMinBoxCount(int)));
-
-    label = new QLabel(QString("Minimum Box Count:"));
-    label->setSizePolicy(QSizePolicy::Expanding, QSizePolicy::Fixed);
-    label->setAlignment(Qt::AlignRight);
-    ((QGridLayout *)(box->layout()))->addWidget(label, 1, 0, 1, 1, Qt::AlignRight);
-    ((QGridLayout *)(box->layout()))->addWidget(minBoxCount, 1, 1, 1, 1, Qt::AlignLeft);
-
-    flipCalTagsFlag = new QCheckBox();
-    flipCalTagsFlag->setCheckable(true);
-    flipCalTagsFlag->setChecked(false);
-    flipCalTagsFlag->setFixedWidth(80);
-    connect(flipCalTagsFlag, SIGNAL(clicked(bool)), glWidget, SLOT(onSetFlipCalTagsFlag(bool)));
-
-    label = new QLabel(QString("Flip CalTag (backlight):"));
-    label->setSizePolicy(QSizePolicy::Expanding, QSizePolicy::Fixed);
-    label->setAlignment(Qt::AlignRight);
-    ((QGridLayout *)(box->layout()))->addWidget(label, 1, 2, 1, 1, Qt::AlignRight);
-    ((QGridLayout *)(box->layout()))->addWidget(flipCalTagsFlag, 1, 3, 1, 1, Qt::AlignLeft);
-
-    // INITIALIZE THE CURVATURE FILTER
-    QSettings settings;
-
-    // LOAD THE PARAMETERS FROM SETTINGS
-    iterSpinBox->setValue(settings.value(QString("LAUCalTagScanWidget::iterSpinBox"), glWidget->iterations()).toInt());
-    gausSpinBox->setValue(settings.value(QString("LAUCalTagScanWidget::gausSpinBox"), glWidget->gaussianRadius()).toInt());
-    mednSpinBox->setValue(settings.value(QString("LAUCalTagScanWidget::mednSpinBox"), glWidget->medianRadius()).toInt());
-    offsetSpinBox->setValue(settings.value(QString("LAUCalTagScanWidget::offsetSpinBox"), glWidget->offset()).toDouble());
-
-    // COPY THE PARAMETERS OVER TO THE GLFILTER
-    glWidget->onSetMedianRadius(mednSpinBox->value());
-    glWidget->onSetGaussianRadius(gausSpinBox->value());
-    glWidget->onSetIterations(iterSpinBox->value());
-    glWidget->onSetFlipCalTagsFlag(flipCalTagsFlag->isChecked());
+    widget = new LAUCalTagFilterWidget(glWidget);
+    widget->load();
+    this->layout()->addWidget(widget);
 }
 
 /****************************************************************************/
@@ -481,11 +355,16 @@ LAUCalTagFilterWidget::LAUCalTagFilterWidget(LAUCalTagGLWidget *glwdgt, QWidget 
     label->setAlignment(Qt::AlignRight);
     ((QGridLayout *)(box->layout()))->addWidget(label, 1, 2, 1, 1, Qt::AlignRight);
     ((QGridLayout *)(box->layout()))->addWidget(flipCalTagsFlag, 1, 3, 1, 1, Qt::AlignLeft);
+}
 
-    // INITIALIZE THE CURVATURE FILTER
+/****************************************************************************/
+/****************************************************************************/
+/****************************************************************************/
+void LAUCalTagFilterWidget::load()
+{
+    // LOAD THE PARAMETERS FROM SETTINGS
     QSettings settings;
 
-    // LOAD THE PARAMETERS FROM SETTINGS
     iterSpinBox->setValue(settings.value(QString("LAUCalTagScanWidget::iterSpinBox"), glWidget->iterations()).toInt());
     gausSpinBox->setValue(settings.value(QString("LAUCalTagScanWidget::gausSpinBox"), glWidget->gaussianRadius()).toInt());
     mednSpinBox->setValue(settings.value(QString("LAUCalTagScanWidget::mednSpinBox"), glWidget->medianRadius()).toInt());
@@ -495,6 +374,25 @@ LAUCalTagFilterWidget::LAUCalTagFilterWidget(LAUCalTagGLWidget *glwdgt, QWidget 
     maxRegionArea->setValue(settings.value(QString("LAUCalTagScanWidget::maxRegionArea"), glWidget->maxRegion()).toInt());
     minBoxCount->setValue(settings.value(QString("LAUCalTagScanWidget::minBoxCount"), glWidget->minBox()).toInt());
     flipCalTagsFlag->setChecked(settings.value(QString("LAUCalTagScanWidget::flipCalTagsFlag"), glWidget->flipCalTags()).toBool());
+}
+
+/****************************************************************************/
+/****************************************************************************/
+/****************************************************************************/
+void LAUCalTagFilterWidget::save()
+{
+    // LOAD THE PARAMETERS FROM SETTINGS
+    QSettings settings;
+
+    settings.setValue(QString("LAUCalTagScanWidget::iterSpinBox"), iterSpinBox->value());
+    settings.setValue(QString("LAUCalTagScanWidget::gausSpinBox"), gausSpinBox->value());
+    settings.setValue(QString("LAUCalTagScanWidget::mednSpinBox"), mednSpinBox->value());
+    settings.setValue(QString("LAUCalTagScanWidget::offsetSpinBox"), offsetSpinBox->value());
+
+    settings.setValue(QString("LAUCalTagScanWidget::minRegionArea"), minRegionArea->value());
+    settings.setValue(QString("LAUCalTagScanWidget::maxRegionArea"), maxRegionArea->value());
+    settings.setValue(QString("LAUCalTagScanWidget::minBoxCount"), minBoxCount->value());
+    settings.setValue(QString("LAUCalTagScanWidget::flipCalTagsFlag"), flipCalTagsFlag->isChecked());
 }
 
 /****************************************************************************/
@@ -1185,6 +1083,8 @@ void LAUCalTagGLWidget::binarize(QOpenGLFramebufferObject *fboA, QOpenGLFramebuf
 /***************************************************************************/
 cv::Mat LAUCalTag::detectCalTagGrid(LAUMemoryObject sbObj, LAUMemoryObject inObj, LAUMemoryObject dbObj, int minBoxes, int minRegion, int maxRegion, bool flipCalTags, QList<Pairing> &pairings, bool *okay)
 {
+    qDebug() << minBoxes << minRegion << maxRegion << flipCalTags;
+
     // CLEAR THE GRID PAIRINGS FROM ANY PREVIOUS CALL
     pairings.clear();
 
@@ -1197,32 +1097,29 @@ cv::Mat LAUCalTag::detectCalTagGrid(LAUMemoryObject sbObj, LAUMemoryObject inObj
 #ifdef QT_DEBUG
     cv::Mat dbImage(dbObj.height(), dbObj.width(), CV_8UC3, (unsigned char *)dbObj.constPointer(), dbObj.step());
 #endif
-    cv::vector<cv::RotatedRect> rotatedRects = regionArea(sbImage, dbImage, minRegion, maxRegion);
     cv::vector<cv::vector<cv::Point2f>> quads = quadArea(inImage, sbImage, minRegion, maxRegion);
 
     cv::imshow("", dbImage);
 
-    // MAKE SURE WE HAVE ENOUGH DETECTED RECTANGLES
-    if (quads.size() > (unsigned long)minBoxes) {
-        // GET A GOOD APPROXIMATION OF WHERE THE SADDLE POINTS ARE
-        cv::vector<cv::vector<cv::Point2f>> squares = findSaddles(rotatedRects);
+    // GET A GOOD APPROXIMATION OF WHERE THE SADDLE POINTS ARE
+    quads = findSaddles(quads);
 
-        // ORGANIZE THE DETECTED SQUARES SO THEY ALL RUN THE SAME ORIENTATION
-        squares = organizeSquares(squares);
+    // DECODE THE CALTAG SQUARES
+    cv::vector<cv::vector<cv::Point2f>> coordinates = findPattern(inImage, quads, flipCalTags);
 
-        // DECODE THE CALTAG SQUARES
-        cv::vector<cv::vector<cv::Point2f>> coordinates = findPattern(inImage, quads, flipCalTags);
 #ifdef QT_DEBUG
-        for (unsigned int n = 0; n < coordinates.size(); n++) {
-            for (unsigned int m = 0; m < coordinates[n].size(); m++) {
-                if (qIsNaN(coordinates[n][m].x * coordinates[n][m].y) == false) {
-                    cv::circle(dbImage, quads[n][m], 2, cv::Scalar(255, 0, 0), 5);
-                }
+    for (unsigned int n = 0; n < coordinates.size(); n++) {
+        for (unsigned int m = 0; m < coordinates[n].size(); m++) {
+            if (qIsNaN(coordinates[n][m].x * coordinates[n][m].y) == false) {
+                cv::circle(dbImage, quads[n][m], 4, cv::Scalar(255, 255, 0), -1);
             }
         }
-        cv::imshow("", dbImage);
+    }
+    cv::imshow("", dbImage);
 #endif
 
+    // MAKE SURE WE HAVE ENOUGH DETECTED RECTANGLES
+    if (quads.size() > (unsigned long)minBoxes) {
         // PRINT OUT A REPORT ON HOW IMAGE SQUARES ARE ALIGNED AND HOW THEY GET MAPPED TO CALTAG SQUARES
         //QFile file(QString("/tmp/squaresReport.txt"));
         //if (file.open(QIODevice::WriteOnly)) {
@@ -1315,196 +1212,27 @@ cv::vector<cv::vector<cv::Point2f>> LAUCalTag::quadArea(cv::Mat inImage, cv::Mat
 /***************************************************************************/
 /***************************************************************************/
 /***************************************************************************/
-cv::vector<cv::RotatedRect> LAUCalTag::regionArea(cv::Mat sbImage, cv::Mat dbImage, int minArea, int maxArea)
+cv::vector<cv::vector<cv::Point2f>> LAUCalTag::findSaddles(cv::vector<cv::vector<cv::Point2f>> quads)
 {
-    // CREATE ASSOCIATED DATA STRUCTURES TO HOLD INTERMEDIATE RESULTS
-    cv::vector<cv::vector<cv::Point>> contours;
-    cv::vector<cv::RotatedRect> rotatedRects;
-    cv::vector<cv::Vec4i> hierarchy;
-
-    // SEARCH AND STORE ANY CONTOURS IN THE IMAGE
-    cv::findContours(sbImage.clone(), contours, hierarchy, CV_RETR_TREE, CV_CHAIN_APPROX_NONE, cv::Point(0, 0));
-
-    float mean = 0.0f;
-    int increment = 0;
-    float sum = 0.0f;
-
-    cv::vector<cv::vector<cv::Point>> contoursPoly;
-    cv::vector<cv::RotatedRect> rectangles;
-
-    // FOR EACH CONTOUR, APPROXIMATE IT WITH A POLYGON
-    for (unsigned int i = 0; i < contours.size(); ++i) {
-        contoursPoly.push_back(contours[i]);
-        cv::approxPolyDP(contours[i], contoursPoly[i], 3.0, true);
-    }
-
-    // USE THE HEIRARCHY FROM FINDCONTOURS TO NARROW THE NUMBER OF POSSIBLE REGIONS
-    for (cv::vector<cv::Vec4i>::size_type idx = 0; idx < hierarchy.size(); ++idx) {
-        if ((hierarchy[idx][0] != -1) && (hierarchy[idx][3] != -1)) {
-            rectangles.push_back(cv::minAreaRect(contoursPoly[idx]));
-        }
-    }
-
-    // USE THE MINIMUM AND MAXIMUM REGIONS TO ELIMINATE MORE BOXES
-    cv::vector<cv::RotatedRect> bestRectangles;
-    cv::vector<float> areas;
-    for (unsigned int i = 0; i < rectangles.size(); ++i) {
-        cv::Point2f vertices[4];
-        rectangles[i].points(vertices);
-        if ((rectangles[i].size.width * rectangles[i].size.height) > minArea) {
-            if ((rectangles[i].size.width * rectangles[i].size.height) < maxArea) {
-                if (rectangles[i].size.width >= (0.8 * rectangles[i].size.height)) {
-                    if (rectangles[i].size.width <= (1.2 * rectangles[i].size.height)) {
-                        bestRectangles.push_back(rectangles[i]);
-                        for (int j = 0; j < 4; j++) {
-                            areas.push_back((float)cv::norm(vertices[j] - vertices[(j + 1) % 4]));
-                            sum += cv::norm(vertices[j] - vertices[(j + 1) % 4]);
-                            increment++;
-                        }
-
-                        cv::Point2f rect_points[4];
-                        rectangles[i].points(rect_points);
-#ifdef QT_DEBUG
-                        for (int j = 0; j < 4; j++) {
-                            cv::line(dbImage, rect_points[j], rect_points[(j + 1) % 4], cv::Scalar(255, 0, 0));
-                        }
-#endif
-                    }
-                }
+    QList<unsigned int> indices;
+    for (unsigned int m = 0; m < 4 * quads.size(); m++) {
+        cv::Point2f meanPt(0.0f, 0.0f);
+        for (unsigned int n = m; n < 4 * quads.size(); n++) {
+            if (LAUCalTag::length(quads[m / 4][m % 4] - quads[n / 4][n % 4]) < 5.0f) {
+                meanPt = meanPt + quads[n / 4][n % 4];
+                indices << n;
             }
         }
-    }
-    mean = sum * (1.0f / increment);
-
-    // SORT THE AREAS TO FIND THE MEDIAN
-    for (unsigned int n = 0; n < areas.size(); n++) {
-        for (unsigned int m = n + 1; m < areas.size(); m++) {
-            if (areas[m] < areas[n]) {
-                float temp = areas[m];
-                areas[m] = areas[n];
-                areas[n] = temp;
-            }
-        }
-        mean = areas[areas.size() / 2];
-    }
-
-    // AVERAGE THE AREAS OF ALL BOXES AND SELECT ALL THE BOXES THAT FILL AN AVERAGE+/-10% AREA
-    // THIS EFFECTIVELY LEAVES ONLY CHECKERBOARD BOXES
-    for (unsigned int i = 0; i < bestRectangles.size(); ++i) {
-        if (bestRectangles[i].size.width * bestRectangles[i].size.height > 0.75 * mean * mean) {
-            if (bestRectangles[i].size.width * bestRectangles[i].size.height < 1.25 * mean * mean) {
-                rotatedRects.push_back(bestRectangles[i]);
-
-                // DRAW ALL THE FINAL ROTATED RECTANGLES AT THIS POINT
-                cv::Point2f rect_points[4];
-                bestRectangles[i].points(rect_points);
-#ifdef QT_DEBUG
-                for (int j = 0; j < 4; j++) {
-                    cv::line(dbImage, rect_points[j], rect_points[(j + 1) % 4], cv::Scalar(0, 255, 0));
-                }
-#endif
+        if (indices.size() > 0) {
+            meanPt = meanPt / indices.size();
+            while (indices.size() > 0) {
+                unsigned int n = indices.takeLast();
+                quads[n / 4][n % 4] = meanPt;
             }
         }
     }
 
-    // DRAW THE DEBUG BUFFER ON SCREEN FOR THE USER
-    return (rotatedRects);
-}
-
-/***************************************************************************/
-/***************************************************************************/
-/***************************************************************************/
-cv::vector<cv::vector<cv::Point2f>> LAUCalTag::findSaddles(cv::vector<cv::RotatedRect> rotatedRects)
-{
-    // WE HAVE THE INDICES FOR THE CHECKERBOARD REGIONS, BUT SOME OF THEM ARE SHARED.
-    // WE WANT A COMPREHENSIVE LIST OF ALL THE SADDLE POINTS, BUT WITHOUT REPEATS.
-    // WE WILL DO THIS BY STORING EACH SADDLE POINT ONCE, AND ALSO BY RECORDING THE INDICES
-    // WITHIN OUR VECTOR THAT ARE THE VERTICES OF EACH SQUARE
-    cv::vector<cv::Point2f> corners;
-
-    cv::vector<cv::vector<cv::Point2f>> saddleTrials;
-    cv::vector<cv::vector<cv::Point2f>> squares;
-    cv::vector<cv::vector<int>> squareIndices;
-
-    for (unsigned int i = 0; i < rotatedRects.size(); i++) {
-        cv::vector<int> indices;
-        squareIndices.push_back(indices);
-    }
-
-    // GO AHEAD AND CHOOSE THE FIRST SQUARE AND RECORD THE INDICES.
-    squareIndices[0].push_back(0);
-    squareIndices[0].push_back(1);
-    squareIndices[0].push_back(2);
-    squareIndices[0].push_back(3);
-
-    cv::vector<int> cornerCounter;
-    for (int i = 0; i < 4; i++) {
-        cornerCounter.push_back(1);
-    }
-
-    cv::Point2f vertex[4];
-    cv::vector<cv::Point2f> temp;
-    rotatedRects[0].points(vertex);
-    for (int i = 0; i < 4; i++) {
-        temp.clear();
-        temp.push_back(vertex[i]);
-        saddleTrials.push_back(temp);
-    }
-
-    // CHECK EACH VERTEX TO SEE IF IT IS "NEAR" ANOTHER VERTEX THATS BEEN ACCOUNTED FOR
-    // IF ITS NEW, PUSH BACK ANOTHER INDICE VECTOR, IF ITS SIMILAR, ADD ANOTHER INDICE TO
-    // THE RIGHT SPOT
-    for (unsigned int i = 1; i < rotatedRects.size(); i++) {
-        cv::Point2f vertices[4];
-        rotatedRects[i].points(vertices);
-        for (unsigned int j = 0; j < 4; j++) {
-            size_t size = saddleTrials.size();
-            for (unsigned int k = 0; k < size; k++) {
-                cv::Point2f meanPoint;
-                cv::Point2f sum = cv::Point2f(0.0f, 0.0f);
-                for (unsigned int l = 0; l < saddleTrials[k].size(); l++) {
-                    sum += saddleTrials[k][l];
-                }
-                meanPoint = (sum * (1.0f / saddleTrials[k].size()));
-                if (sqrt(pow(vertices[j].x - meanPoint.x, 2) + pow(vertices[j].y - meanPoint.y, 2)) < 10) {
-                    saddleTrials[k].push_back(vertices[j]);
-                    squareIndices[i].push_back(k);
-                    cornerCounter[k] += 1;
-                    break;
-                } else if (k == (size - 1)) {
-                    temp.clear();
-                    temp.push_back(vertices[j]);
-                    saddleTrials.push_back(temp);
-                    squareIndices[i].push_back(k + 1);
-                    cornerCounter.push_back(1);
-                }
-            }
-        }
-    }
-
-    // TAKE THE SADDLES WE HAVE FOUND AND AVERAGE THEM TO GET A FAIRLY GOOD APPROXIMATE LOCATION
-    for (unsigned int k = 0; k < saddleTrials.size(); k++) {
-        cv::Point2f meanPoint;
-        cv::Point2f sum = cv::Point2f(0.0f, 0.0f);
-        for (unsigned int l = 0; l < saddleTrials[k].size(); l++) {
-            sum += saddleTrials[k][l];
-        }
-        meanPoint = (sum * (1.0f / saddleTrials[k].size()));
-        corners.push_back(meanPoint);
-    }
-
-    // CREATE A LIST OF SQUARES THAT CONNECT THE SADDLE POINTS
-    for (unsigned int k = 0; k < squareIndices.size(); k++) {
-        cv::vector<cv::Point2f> square;
-        for (unsigned int l = 0; l < squareIndices[k].size(); l++) {
-            int index = squareIndices[k][l];
-            cv::Point2f point = corners[index];
-            square.push_back(point);
-        }
-        squares.push_back(square);
-    }
-
-    return (squares);
+    return (quads);
 }
 
 /****************************************************************************/
@@ -2229,4 +1957,20 @@ cv::Mat LAUCalTag::findBestQuadraticMapping(cv::vector<cv::Point2f> fmPoints, cv
         }
     }
     return (lVec);
+}
+
+/****************************************************************************/
+/****************************************************************************/
+/****************************************************************************/
+float LAUCalTag::length(cv::Point2f point)
+{
+    return (sqrt(point.x * point.x + point.y * point.y));
+}
+
+/****************************************************************************/
+/****************************************************************************/
+/****************************************************************************/
+float LAUCalTag::angle(cv::Point2f point)
+{
+    return (atan2(point.y, point.x));
 }

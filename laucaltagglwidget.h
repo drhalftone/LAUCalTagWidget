@@ -68,6 +68,9 @@ namespace cv
 #define CALTAGSCANGLFILTERBESTFITTRANSFORMPOLYNOMIALORDER   2
 #define CALTAGSCANGLFILTERDISTANCEFROMGRIDPOINTTHRESHOLD    0.10f
 
+/****************************************************************************/
+/****************************************************************************/
+/****************************************************************************/
 namespace LAUCalTag
 {
     typedef struct {
@@ -75,31 +78,21 @@ namespace LAUCalTag
         QPoint xy;
     } Pairing;
 
-    static void removeOutlierPoints(cv::vector<cv::Point2f> &fmPoints, cv::vector<cv::Point2f> &toPoints);
+    cv::Mat detectCalTagGrid(LAUMemoryObject inObj, LAUMemoryObject sbObj, LAUMemoryObject dbObj, int minBoxes, int minArea, int maxArea, bool flipCalTags, QList<Pairing> &pairings, bool *okay = NULL);
+    cv::Mat findBestQuadraticMapping(cv::vector<cv::Point2f> fmPoints, cv::vector<cv::Point2f> toPoints, int width, int height, int order = 4);
+    cv::Mat findBestLinearMapping(cv::vector<cv::Point2f> fmPoints, cv::vector<cv::Point2f> toPoints);
 
-    static cv::vector<cv::Point2f> sortPoints(cv::vector<cv::Point> points);
-    static cv::vector<cv::RotatedRect> regionArea(cv::Mat sbImage, cv::Mat dbImage, int minArea, int maxArea);
-    static cv::vector<cv::vector<cv::Point2f>> quadArea(cv::Mat inImage, cv::Mat sbImage, int minArea, int maxArea);
-    static cv::vector<cv::vector<cv::Point2f>> findSaddles(cv::vector<cv::RotatedRect> rotatedRects);
-    static cv::vector<cv::vector<cv::Point2f>> findPattern(cv::Mat inImage, cv::vector<cv::vector<cv::Point2f>> squares, bool flipCalTags);
-    static cv::vector<cv::vector<cv::Point2f>> organizeSquares(cv::vector<cv::vector<cv::Point2f>> squares);
+    cv::vector<cv::Point2f> sortPoints(cv::vector<cv::Point> points);
+    cv::vector<cv::vector<cv::Point2f>> quadArea(cv::Mat inImage, cv::Mat sbImage, int minArea, int maxArea);
+    cv::vector<cv::vector<cv::Point2f>> findSaddles(cv::vector<cv::vector<cv::Point2f> > quads);
+    cv::vector<cv::vector<cv::Point2f>> findPattern(cv::Mat inImage, cv::vector<cv::vector<cv::Point2f>> squares, bool flipCalTags);
+    cv::vector<cv::vector<cv::Point2f>> organizeSquares(cv::vector<cv::vector<cv::Point2f>> squares);
 
-    static cv::Mat detectCalTagGrid(LAUMemoryObject inObj, LAUMemoryObject sbObj, LAUMemoryObject dbObj, int minBoxes, int minArea, int maxArea, bool flipCalTags, QList<Pairing> &pairings, bool *okay = NULL);
-    static cv::Mat findBestQuadraticMapping(cv::vector<cv::Point2f> fmPoints, cv::vector<cv::Point2f> toPoints, int width, int height, int order = 4);
-    static cv::Mat findBestLinearMapping(cv::vector<cv::Point2f> fmPoints, cv::vector<cv::Point2f> toPoints);
-
-    static float length(cv::Point2f point)
-    {
-        return (sqrt(point.x * point.x + point.y * point.y));
-    }
-
-    static float angle(cv::Point2f point)
-    {
-        return (atan2(point.y, point.x));
-    }
-
-    static  void transform(cv::Mat inMat, cv::Mat outMat, cv::Mat transformMatrix);
-    static  bool checkBitCode(int code, cv::Point2f *pt);
+    void removeOutlierPoints(cv::vector<cv::Point2f> &fmPoints, cv::vector<cv::Point2f> &toPoints);
+    void transform(cv::Mat inMat, cv::Mat outMat, cv::Mat transformMatrix);
+    bool checkBitCode(int code, cv::Point2f *pt);
+    float length(cv::Point2f point);
+    float angle(cv::Point2f point);
 }
 
 /****************************************************************************/
@@ -253,6 +246,9 @@ class LAUCalTagFilterWidget : public QWidget
 public:
     LAUCalTagFilterWidget(LAUCalTagGLWidget *glwdgt, QWidget *parent = NULL);
 
+    void load();
+    void save();
+
 public slots:
 
 private:
@@ -279,6 +275,12 @@ class LAUCalTagWidget : public QWidget
 public:
     LAUCalTagWidget(QImage image, QWidget *parent = NULL);
     LAUCalTagWidget(QWidget *parent = NULL);
+    ~LAUCalTagWidget()
+    {
+        if (widget) {
+            widget->save();
+        }
+    }
 
     bool isValid() const
     {
@@ -349,16 +351,7 @@ public slots:
 
 private:
     LAUCalTagGLWidget *glWidget;
-
-    QSpinBox *iterSpinBox;
-    QSpinBox *gausSpinBox;
-    QSpinBox *mednSpinBox;
-    QDoubleSpinBox *offsetSpinBox;
-
-    QSpinBox *minRegionArea;     // MINIMUM REGION AREA
-    QSpinBox *maxRegionArea;     // MAXIMUM REGION AREA
-    QSpinBox *minBoxCount;       // MINIMUM BOX AREA
-    QCheckBox *flipCalTagsFlag;  // IS THE TARGET BACKLIT?
+    LAUCalTagFilterWidget *widget;
 
     void initialize();
 };

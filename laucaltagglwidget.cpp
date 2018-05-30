@@ -348,7 +348,7 @@ LAUCalTagFilterWidget::LAUCalTagFilterWidget(LAUCalTagGLWidget *glwdgt, QWidget 
     flipCalTagsFlag->setCheckable(true);
     flipCalTagsFlag->setChecked(false);
     flipCalTagsFlag->setFixedWidth(80);
-    connect(flipCalTagsFlag, SIGNAL(clicked(bool)), glWidget, SLOT(onSetFlipCalTagsFlag(bool)));
+    connect(flipCalTagsFlag, SIGNAL(toggled(bool)), glWidget, SLOT(onSetFlipCalTagsFlag(bool)));
 
     label = new QLabel(QString("Flip CalTag (backlight):"));
     label->setSizePolicy(QSizePolicy::Expanding, QSizePolicy::Fixed);
@@ -1099,7 +1099,7 @@ cv::Mat LAUCalTag::detectCalTagGrid(LAUMemoryObject sbObj, LAUMemoryObject inObj
 #endif
     cv::vector<cv::vector<cv::Point2f>> quads = quadArea(inImage, sbImage, minRegion, maxRegion);
 
-    cv::imshow("", dbImage);
+    //cv::imshow("", dbImage);
 
     // GET A GOOD APPROXIMATION OF WHERE THE SADDLE POINTS ARE
     quads = findSaddles(quads);
@@ -1115,7 +1115,7 @@ cv::Mat LAUCalTag::detectCalTagGrid(LAUMemoryObject sbObj, LAUMemoryObject inObj
             }
         }
     }
-    cv::imshow("", dbImage);
+    //cv::imshow("", dbImage);
 #endif
 
     // MAKE SURE WE HAVE ENOUGH DETECTED RECTANGLES

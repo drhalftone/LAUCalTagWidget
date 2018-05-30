@@ -97,6 +97,7 @@ protected:
 private:
     QCamera::CaptureMode mode;
     LAUVideoGLWidget *label;
+    LAUCalTagFilterWidget *widget;
     QThread *thread;
     QCamera *camera;
     QCameraImageCapture *imageCapture;

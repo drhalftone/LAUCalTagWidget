@@ -35,7 +35,7 @@
 /****************************************************************************/
 /****************************************************************************/
 /****************************************************************************/
-LAUWebCameraWidget::LAUWebCameraWidget(QCamera::CaptureMode capture, QWidget *parent) : QWidget(parent), mode(capture), thread(NULL), camera(NULL), imageCapture(NULL), surface(NULL)
+LAUWebCameraWidget::LAUWebCameraWidget(QCamera::CaptureMode capture, QWidget *parent) : QWidget(parent), mode(capture), widget(NULL), thread(NULL), camera(NULL), imageCapture(NULL), surface(NULL)
 {
     this->setLayout(new QVBoxLayout());
     this->setWindowTitle(QString("LAUCalTag Video Widget"));
@@ -92,6 +92,7 @@ LAUWebCameraWidget::LAUWebCameraWidget(QCamera::CaptureMode capture, QWidget *pa
         thread->start();
     }
     label->setMinimumSize(640 * 2 / 3, 480 * 2 / 3);
+    widget->load();
 }
 
 /****************************************************************************/
@@ -115,6 +116,10 @@ LAUWebCameraWidget::~LAUWebCameraWidget()
     if (camera) {
         camera->stop();
         delete camera;
+    }
+
+    if (widget) {
+        widget->save();
     }
 }
 

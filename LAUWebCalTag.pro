@@ -51,14 +51,16 @@ SOURCES += \
         lauwebcamerawidget.cpp \
         lauvideosurface.cpp \
         lauvideoglwidget.cpp \
-        laucaltagglwidget.cpp
+        laucaltagglwidget.cpp \
+    laucaltagglobject.cpp
 
 HEADERS += \
         laumemoryobject.h \
         lauwebcamerawidget.h \
         lauvideosurface.h \
         lauvideoglwidget.h \
-        laucaltagglwidget.h
+        laucaltagglwidget.h \
+    laucaltagglobject.h
 
 RESOURCES += lauwebcameracapture.qrc
 

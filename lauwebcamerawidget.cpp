@@ -45,7 +45,7 @@ LAUWebCameraWidget::LAUWebCameraWidget(QCamera::CaptureMode capture, QWidget *pa
     label->setSizePolicy(QSizePolicy::Expanding, QSizePolicy::Expanding);
     this->layout()->addWidget(label);
 
-    LAUCalTagFilterWidget *widget = new LAUCalTagFilterWidget((LAUCalTagGLWidget *)label);
+    LAUCalTagFilterWidget *widget = ((LAUCalTagGLWidget *)label)->widget();
     widget->setSizePolicy(QSizePolicy::Expanding, QSizePolicy::Minimum);
     this->layout()->addWidget(widget);
 

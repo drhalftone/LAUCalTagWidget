@@ -46,58 +46,11 @@
 #include <QFormLayout>
 #include <QMouseEvent>
 #include <QPushButton>
+#include <QOpenGLWidget>
 #include <QDialogButtonBox>
 
-#include "opencv2/core/core.hpp"
-#include "opencv2/calib3d/calib3d.hpp"
-#include "opencv2/highgui/highgui.hpp"
-#include "opencv2/imgproc/imgproc.hpp"
-
 #include "lauvideoglwidget.h"
-
-namespace cv
-{
-    using std::vector;
-}
-
-#define CALTAGSCANGLFILTERITERATIONCOUNT                    1
-#define CALTAGSCANGLFILTERQUANTIZATIONOFFSET                -0.01f
-#define CALTAGSCANGLFILTERGAUSSIANFILTERRADIUS              10
-#define CALTAGSCANGLFILTERMEDIANFILTERRADIUS                0
-#define CALTAGSCANGLFILTERANGLETOLERANCE                    PI/9.0f
-#define CALTAGSCANGLFILTERBESTFITTRANSFORMPOLYNOMIALORDER   2
-#define CALTAGSCANGLFILTERDISTANCEFROMGRIDPOINTTHRESHOLD    0.10f
-
-/****************************************************************************/
-/****************************************************************************/
-/****************************************************************************/
-namespace LAUCalTag
-{
-    typedef struct {
-        QPoint cr;
-        QPoint xy;
-    } Pairing;
-
-#ifdef QT_DEBUG
-    cv::Mat detectCalTagGrid(LAUMemoryObject inObj, LAUMemoryObject sbObj, LAUMemoryObject dbObj, int minBoxes, int minArea, int maxArea, bool flipCalTags, QList<Pairing> &pairings, bool *okay = NULL);
-#else
-    cv::Mat detectCalTagGrid(LAUMemoryObject inObj, LAUMemoryObject sbObj, int minBoxes, int minArea, int maxArea, bool flipCalTags, QList<Pairing> &pairings, bool *okay = NULL);
-#endif
-    cv::Mat findBestQuadraticMapping(cv::vector<cv::Point2f> fmPoints, cv::vector<cv::Point2f> toPoints, int width, int height, int order = 4);
-    cv::Mat findBestLinearMapping(cv::vector<cv::Point2f> fmPoints, cv::vector<cv::Point2f> toPoints);
-
-    cv::vector<cv::Point2f> sortPoints(cv::vector<cv::Point> points);
-    cv::vector<cv::vector<cv::Point2f>> quadArea(cv::Mat inImage, cv::Mat sbImage, int minArea, int maxArea);
-    cv::vector<cv::vector<cv::Point2f>> findSaddles(cv::vector<cv::vector<cv::Point2f> > quads);
-    cv::vector<cv::vector<cv::Point2f>> findPattern(cv::Mat inImage, cv::vector<cv::vector<cv::Point2f>> squares, bool flipCalTags);
-    cv::vector<cv::vector<cv::Point2f>> organizeSquares(cv::vector<cv::vector<cv::Point2f>> squares);
-
-    void removeOutlierPoints(cv::vector<cv::Point2f> &fmPoints, cv::vector<cv::Point2f> &toPoints);
-    void transform(cv::Mat inMat, cv::Mat outMat, cv::Mat transformMatrix);
-    bool checkBitCode(int code, cv::Point2f *pt);
-    float length(cv::Point2f point);
-    float angle(cv::Point2f point);
-}
+#include "laucaltagglobject.h"
 
 /****************************************************************************/
 /****************************************************************************/
@@ -110,44 +63,76 @@ public:
     explicit LAUCalTagGLWidget(QWidget *parent = NULL);
     ~LAUCalTagGLWidget();
 
-    float offset() const
+    double offset() const
     {
-        return (quantizationOffset);
+        if (calTagGLObject) {
+            return (calTagGLObject->offset());
+        }
+        return (-1.0f);
     }
 
     unsigned int medianRadius() const
     {
-        return (medianFilterRadius);
+        if (calTagGLObject) {
+            return (calTagGLObject->medianRadius());
+        }
+        return (0);
     }
 
     unsigned int gaussianRadius() const
     {
-        return (gaussianFilterRadius);
+        if (calTagGLObject) {
+            return (calTagGLObject->gaussianRadius());
+        }
+        return (0);
     }
 
     unsigned int iterations() const
     {
-        return (iterationCount);
+        if (calTagGLObject) {
+            return (calTagGLObject->iterations());
+        }
+        return (0);
     }
 
     int minRegion() const
     {
-        return (minRegionArea);
+        if (calTagGLObject) {
+            return (calTagGLObject->minRegion());
+        }
+        return (0);
     }
 
     int maxRegion() const
     {
-        return (maxRegionArea);
+        if (calTagGLObject) {
+            return (calTagGLObject->maxRegion());
+        }
+        return (0);
     }
 
     int minBox() const
     {
-        return (minBoxCount);
+        if (calTagGLObject) {
+            return (calTagGLObject->minBox());
+        }
+        return (0);
     }
 
     bool flipCalTags() const
     {
-        return (flipCalTagsFlag);
+        if (calTagGLObject) {
+            return (calTagGLObject->flipCalTags());
+        }
+        return (false);
+    }
+
+    LAUCalTagFilterWidget *widget(QWidget *parent = NULL)
+    {
+        if (calTagGLObject) {
+            return (calTagGLObject->widget(parent));
+        }
+        return (NULL);
     }
 
     LAUMemoryObject grabImage();
@@ -155,50 +140,58 @@ public:
 public slots:
     void onSetOffset(double val)
     {
-        quantizationOffset = val;
-        processGL();
+        if (calTagGLObject) {
+            calTagGLObject->onSetOffset(val);
+        }
     }
 
     void onSetMedianRadius(int val)
     {
-        medianFilterRadius = val;
-        processGL();
+        if (calTagGLObject) {
+            calTagGLObject->onSetMedianRadius(val);
+        }
     }
 
     void onSetGaussianRadius(int val)
     {
-        gaussianFilterRadius = val;
-        processGL();
+        if (calTagGLObject) {
+            calTagGLObject->onSetGaussianRadius(val);
+        }
     }
 
     void onSetIterations(int val)
     {
-        iterationCount = val;
-        processGL();
+        if (calTagGLObject) {
+            calTagGLObject->onSetIterations(val);
+        }
     }
 
     void onSetMinRegionArea(int val)
     {
-        minRegionArea = val;
-        processGL();
+        if (calTagGLObject) {
+            calTagGLObject->onSetMinRegionArea(val);
+        }
     }
 
     void onSetMaxRegionArea(int val)
     {
-        maxRegionArea = val;
-        processGL();
+        if (calTagGLObject) {
+            calTagGLObject->onSetMaxRegionArea(val);
+        }
     }
 
     void onSetMinBoxCount(int val)
     {
-        minBoxCount = val;
-        processGL();
+        if (calTagGLObject) {
+            calTagGLObject->onSetMinBoxCount(val);
+        }
     }
 
     void onSetFlipCalTagsFlag(bool val)
     {
-        flipCalTagsFlag = val;
-        processGL();
+        if (calTagGLObject) {
+            calTagGLObject->onSetFlipCalTagsFlag(val);
+        }
     }
 
 protected:
@@ -207,68 +200,7 @@ protected:
     void paint();
 
 private:
-    QList<LAUCalTag::Pairing> gridPairings;            // KEEP TRACK OF THE LAST SET OF GRID POINT PAIRINGS
-
-    float quantizationOffset;
-    unsigned int medianFilterRadius;
-    unsigned int gaussianFilterRadius;
-    unsigned int iterationCount;
-
-    int minRegionArea;     // MINIMUM REGION AREA
-    int maxRegionArea;     // MAXIMUM REGION AREA
-    int minBoxCount;       // MINIMUM BOX AREA
-    bool flipCalTagsFlag;  // IS THE TARGET BACKLIT?
-
-    LAUMemoryObject memoryObject[2];
-#ifdef QT_DEBUG
-    LAUMemoryObject debugObject;
-#endif
-
-    QOpenGLShaderProgram programA, programB, programC;
-    QOpenGLShaderProgram programD, programE, programF;
-    QOpenGLShaderProgram programG, programH, programI;
-    QOpenGLShaderProgram programJ, programK;
-
-    QOpenGLTexture *textureLUT;
-
-    QOpenGLFramebufferObject *frameBufferObjectA, *frameBufferObjectB;
-    QOpenGLFramebufferObject *frameBufferObjectC, *frameBufferObjectD;
-
-    void testFBO(QOpenGLFramebufferObject *fbo[]);
-
-    void binarize(QOpenGLFramebufferObject *fboA, QOpenGLFramebufferObject *fboB, QOpenGLFramebufferObject *fboC);
-    void sobel(QOpenGLFramebufferObject *fboA, QOpenGLFramebufferObject *fboB);
-    void cleanUp(QOpenGLFramebufferObject *fboA, QOpenGLFramebufferObject *fboB);
-    void dilationErosion(QOpenGLFramebufferObject *fboA, QOpenGLFramebufferObject *fboB);
-};
-
-/****************************************************************************/
-/****************************************************************************/
-/****************************************************************************/
-class LAUCalTagFilterWidget : public QWidget
-{
-    Q_OBJECT
-
-public:
-    LAUCalTagFilterWidget(LAUCalTagGLWidget *glwdgt, QWidget *parent = NULL);
-
-    void load();
-    void save();
-
-public slots:
-
-private:
-    LAUCalTagGLWidget *glWidget;
-
-    QSpinBox *iterSpinBox;
-    QSpinBox *gausSpinBox;
-    QSpinBox *mednSpinBox;
-    QDoubleSpinBox *offsetSpinBox;
-
-    QSpinBox *minRegionArea;     // MINIMUM REGION AREA
-    QSpinBox *maxRegionArea;     // MAXIMUM REGION AREA
-    QSpinBox *minBoxCount;       // MINIMUM BOX AREA
-    QCheckBox *flipCalTagsFlag;  // IS THE TARGET BACKLIT?
+    LAUCalTagGLObject *calTagGLObject;
 };
 
 /****************************************************************************/
@@ -283,9 +215,7 @@ public:
     LAUCalTagWidget(QWidget *parent = NULL);
     ~LAUCalTagWidget()
     {
-        if (widget) {
-            widget->save();
-        }
+        qDebug() << "LAUCalTagWidget::~LAUCalTagWidget()";
     }
 
     bool isValid() const
@@ -370,7 +300,7 @@ class LAUCalTagDialog : public QDialog
     Q_OBJECT
 
 public:
-    LAUCalTagDialog(QImage image, QWidget *parent = 0)
+    LAUCalTagDialog(QImage image, QWidget *parent = 0) : QDialog(parent)
     {
         if (image.isNull()) {
             QSettings settings;

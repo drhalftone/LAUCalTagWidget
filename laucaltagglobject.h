@@ -224,9 +224,9 @@ private:
     QOpenGLFramebufferObject *frameBufferObjectA, *frameBufferObjectB;
     QOpenGLFramebufferObject *frameBufferObjectC, *frameBufferObjectD;
 
-    void testFBO(QOpenGLFramebufferObject *fbo[], QOpenGLTexture *videoTexture);
+    void testFBO(QOpenGLFramebufferObject *fbo[], int cols, int rows);
 
-    void binarize(QOpenGLFramebufferObject *fboA, QOpenGLFramebufferObject *fboB, QOpenGLFramebufferObject *fboC, QOpenGLTexture *videoTexture);
+    void binarize(QOpenGLTexture *videoTexture, QOpenGLFramebufferObject *fboA, QOpenGLFramebufferObject *fboB, QOpenGLFramebufferObject *fboC);
     void sobel(QOpenGLFramebufferObject *fboA, QOpenGLFramebufferObject *fboB);
     void cleanUp(QOpenGLFramebufferObject *fboA, QOpenGLFramebufferObject *fboB);
     void dilationErosion(QOpenGLFramebufferObject *fboA, QOpenGLFramebufferObject *fboB);

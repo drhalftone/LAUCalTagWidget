@@ -152,6 +152,186 @@ const unsigned char bridgeLutD[512] = { 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00
 /****************************************************************************/
 /****************************************************************************/
 /****************************************************************************/
+LAUCalTagFilterWidget::LAUCalTagFilterWidget(LAUCalTagGLObject *object, QWidget *parent) : QWidget(parent)
+{
+    this->setLayout(new QVBoxLayout());
+    this->setWindowTitle(QString("LAUCalTag Dialog"));
+    this->layout()->setContentsMargins(6, 6, 6, 6);
+    this->layout()->setSpacing(10);
+
+    QGroupBox *box = new QGroupBox(QString("Binarize Parameters"));
+    box->setSizePolicy(QSizePolicy::Expanding, QSizePolicy::Minimum);
+    box->setLayout(new QGridLayout());
+    box->layout()->setContentsMargins(6, 6, 6, 6);
+    ((QGridLayout *)(box->layout()))->setColumnStretch(0, 100);
+    ((QGridLayout *)(box->layout()))->setColumnMinimumWidth(2, 160);
+    this->layout()->addWidget(box);
+
+    iterSpinBox = new QSpinBox();
+    iterSpinBox->setMinimum(1);
+    iterSpinBox->setMaximum(5);
+    iterSpinBox->setFixedWidth(80);
+    iterSpinBox->setAlignment(Qt::AlignRight);
+    connect(iterSpinBox, SIGNAL(valueChanged(int)), object, SLOT(onSetIterations(int)));
+
+    QLabel *label = new QLabel(QString("Gaussian Smoother Iterations:"));
+    label->setSizePolicy(QSizePolicy::Expanding, QSizePolicy::Fixed);
+    label->setAlignment(Qt::AlignRight);
+    ((QGridLayout *)(box->layout()))->addWidget(label, 0, 0, 1, 1, Qt::AlignRight);
+    ((QGridLayout *)(box->layout()))->addWidget(iterSpinBox, 0, 1, 1, 1, Qt::AlignLeft);
+
+    gausSpinBox = new QSpinBox();
+    gausSpinBox->setMinimum(1);
+    gausSpinBox->setMaximum(127);
+    gausSpinBox->setFixedWidth(80);
+    gausSpinBox->setAlignment(Qt::AlignRight);
+    connect(gausSpinBox, SIGNAL(valueChanged(int)), object, SLOT(onSetGaussianRadius(int)));
+
+    label = new QLabel(QString("Guassian Smoother Radius:"));
+    label->setSizePolicy(QSizePolicy::Expanding, QSizePolicy::Fixed);
+    label->setAlignment(Qt::AlignRight);
+    ((QGridLayout *)(box->layout()))->addWidget(label, 0, 2, 1, 1, Qt::AlignRight);
+    ((QGridLayout *)(box->layout()))->addWidget(gausSpinBox, 0, 3, 1, 1, Qt::AlignLeft);
+
+    offsetSpinBox = new QDoubleSpinBox();
+    offsetSpinBox->setMinimum(-1.0);
+    offsetSpinBox->setMaximum(1.0);
+    offsetSpinBox->setSingleStep(0.01);
+    offsetSpinBox->setFixedWidth(80);
+    offsetSpinBox->setAlignment(Qt::AlignRight);
+    connect(offsetSpinBox, SIGNAL(valueChanged(double)), object, SLOT(onSetOffset(double)));
+
+    label = new QLabel(QString("Gaussian Filter Offset:"));
+    label->setSizePolicy(QSizePolicy::Expanding, QSizePolicy::Fixed);
+    label->setAlignment(Qt::AlignRight);
+    ((QGridLayout *)(box->layout()))->addWidget(label, 1, 0, 1, 1, Qt::AlignRight);
+    ((QGridLayout *)(box->layout()))->addWidget(offsetSpinBox, 1, 1, 1, 1, Qt::AlignLeft);
+
+    mednSpinBox = new QSpinBox();
+    mednSpinBox->setMinimum(0);
+    mednSpinBox->setMaximum(127);
+    mednSpinBox->setFixedWidth(80);
+    mednSpinBox->setAlignment(Qt::AlignRight);
+    connect(mednSpinBox, SIGNAL(valueChanged(int)), object, SLOT(onSetMedianRadius(int)));
+
+    label = new QLabel(QString("Median Smoother Radius:"));
+    label->setSizePolicy(QSizePolicy::Expanding, QSizePolicy::Fixed);
+    label->setAlignment(Qt::AlignRight);
+    ((QGridLayout *)(box->layout()))->addWidget(label, 1, 2, 1, 1, Qt::AlignRight);
+    ((QGridLayout *)(box->layout()))->addWidget(mednSpinBox, 1, 3, 1, 1, Qt::AlignLeft);
+
+    box = new QGroupBox(QString("CalTag Parameters"));
+    box->setSizePolicy(QSizePolicy::Expanding, QSizePolicy::Minimum);
+    box->setLayout(new QGridLayout());
+    box->layout()->setContentsMargins(6, 6, 6, 6);
+    ((QGridLayout *)(box->layout()))->setColumnStretch(0, 100);
+    ((QGridLayout *)(box->layout()))->setColumnMinimumWidth(2, 160);
+    this->layout()->addWidget(box);
+
+    minRegionArea = new QSpinBox();
+    minRegionArea->setMinimum(0);
+    minRegionArea->setMaximum(1000000);
+    minRegionArea->setValue(128 - 32);
+    minRegionArea->setFixedWidth(80);
+    connect(minRegionArea, SIGNAL(valueChanged(int)), object, SLOT(onSetMinRegionArea(int)));
+
+    label = new QLabel(QString("Minimum Region Area:"));
+    label->setSizePolicy(QSizePolicy::Expanding, QSizePolicy::Fixed);
+    label->setAlignment(Qt::AlignRight);
+    ((QGridLayout *)(box->layout()))->addWidget(label, 0, 0, 1, 1, Qt::AlignRight);
+    ((QGridLayout *)(box->layout()))->addWidget(minRegionArea, 0, 1, 1, 1, Qt::AlignLeft);
+
+    maxRegionArea = new QSpinBox();
+    maxRegionArea->setMinimum(0);
+    maxRegionArea->setMaximum(1000000);
+    maxRegionArea->setValue((640 * 480) / 16);
+    maxRegionArea->setFixedWidth(80);
+    connect(maxRegionArea, SIGNAL(valueChanged(int)), object, SLOT(onSetMaxRegionArea(int)));
+
+    label = new QLabel(QString("Maximum Region Area:"));
+    label->setSizePolicy(QSizePolicy::Expanding, QSizePolicy::Fixed);
+    label->setAlignment(Qt::AlignRight);
+    ((QGridLayout *)(box->layout()))->addWidget(label, 0, 2, 1, 1, Qt::AlignRight);
+    ((QGridLayout *)(box->layout()))->addWidget(maxRegionArea, 0, 3, 1, 1, Qt::AlignLeft);
+
+    minBoxCount = new QSpinBox();
+    minBoxCount->setMinimum(0);
+    minBoxCount->setMaximum(1000000);
+    minBoxCount->setValue(128);
+    minBoxCount->setFixedWidth(80);
+    connect(minBoxCount, SIGNAL(valueChanged(int)), object, SLOT(onSetMinBoxCount(int)));
+
+    label = new QLabel(QString("Minimum Box Count:"));
+    label->setSizePolicy(QSizePolicy::Expanding, QSizePolicy::Fixed);
+    label->setAlignment(Qt::AlignRight);
+    ((QGridLayout *)(box->layout()))->addWidget(label, 1, 0, 1, 1, Qt::AlignRight);
+    ((QGridLayout *)(box->layout()))->addWidget(minBoxCount, 1, 1, 1, 1, Qt::AlignLeft);
+
+    flipCalTagsFlag = new QCheckBox();
+    flipCalTagsFlag->setCheckable(true);
+    flipCalTagsFlag->setChecked(false);
+    flipCalTagsFlag->setFixedWidth(80);
+    connect(flipCalTagsFlag, SIGNAL(toggled(bool)), object, SLOT(onSetFlipCalTagsFlag(bool)));
+
+    label = new QLabel(QString("Flip CalTag (backlight):"));
+    label->setSizePolicy(QSizePolicy::Expanding, QSizePolicy::Fixed);
+    label->setAlignment(Qt::AlignRight);
+    ((QGridLayout *)(box->layout()))->addWidget(label, 1, 2, 1, 1, Qt::AlignRight);
+    ((QGridLayout *)(box->layout()))->addWidget(flipCalTagsFlag, 1, 3, 1, 1, Qt::AlignLeft);
+
+    // SET THE INITIAL VALUES FROM THE SUPPLIED GLOBJECT
+    iterSpinBox->setValue(object->iterations());
+    gausSpinBox->setValue(object->gaussianRadius());
+    mednSpinBox->setValue(object->medianRadius());
+    offsetSpinBox->setValue(object->offset());
+
+    minRegionArea->setValue(object->minRegion());
+    maxRegionArea->setValue(object->maxRegion());
+    minBoxCount->setValue(object->minBox());
+    flipCalTagsFlag->setChecked(object->flipCalTags());
+}
+
+/****************************************************************************/
+/****************************************************************************/
+/****************************************************************************/
+void LAUCalTagFilterWidget::load()
+{
+    // LOAD THE PARAMETERS FROM SETTINGS
+    QSettings settings;
+
+    iterSpinBox->setValue(settings.value(QString("LAUCalTagScanWidget::iterSpinBox"), iterSpinBox->value()).toInt());
+    gausSpinBox->setValue(settings.value(QString("LAUCalTagScanWidget::gausSpinBox"), gausSpinBox->value()).toInt());
+    mednSpinBox->setValue(settings.value(QString("LAUCalTagScanWidget::mednSpinBox"), mednSpinBox->value()).toInt());
+    offsetSpinBox->setValue(settings.value(QString("LAUCalTagScanWidget::offsetSpinBox"), offsetSpinBox->value()).toDouble());
+
+    minRegionArea->setValue(settings.value(QString("LAUCalTagScanWidget::minRegionArea"), minRegionArea->value()).toInt());
+    maxRegionArea->setValue(settings.value(QString("LAUCalTagScanWidget::maxRegionArea"), maxRegionArea->value()).toInt());
+    minBoxCount->setValue(settings.value(QString("LAUCalTagScanWidget::minBoxCount"), minBoxCount->value()).toInt());
+    flipCalTagsFlag->setChecked(settings.value(QString("LAUCalTagScanWidget::flipCalTagsFlag"), flipCalTagsFlag->isChecked()).toBool());
+}
+
+/****************************************************************************/
+/****************************************************************************/
+/****************************************************************************/
+void LAUCalTagFilterWidget::save()
+{
+    // LOAD THE PARAMETERS FROM SETTINGS
+    QSettings settings;
+
+    settings.setValue(QString("LAUCalTagScanWidget::iterSpinBox"), iterSpinBox->value());
+    settings.setValue(QString("LAUCalTagScanWidget::gausSpinBox"), gausSpinBox->value());
+    settings.setValue(QString("LAUCalTagScanWidget::mednSpinBox"), mednSpinBox->value());
+    settings.setValue(QString("LAUCalTagScanWidget::offsetSpinBox"), offsetSpinBox->value());
+
+    settings.setValue(QString("LAUCalTagScanWidget::minRegionArea"), minRegionArea->value());
+    settings.setValue(QString("LAUCalTagScanWidget::maxRegionArea"), maxRegionArea->value());
+    settings.setValue(QString("LAUCalTagScanWidget::minBoxCount"), minBoxCount->value());
+    settings.setValue(QString("LAUCalTagScanWidget::flipCalTagsFlag"), flipCalTagsFlag->isChecked());
+}
+
+/****************************************************************************/
+/****************************************************************************/
+/****************************************************************************/
 LAUCalTagGLObject::LAUCalTagGLObject(QObject *parent) : QObject(parent), isValidFlag(false)
 {
     // INITIALIZE PRIVATE VARIABLES
@@ -330,10 +510,10 @@ void LAUCalTagGLObject::processGL(QOpenGLTexture *videoTexture, QOpenGLFramebuff
 {
     if (isValid()) {
         // SEE IF WE NEED NEW FBOS
-        testFBO(&frameBufferObjectA, videoTexture);
-        testFBO(&frameBufferObjectB, videoTexture);
-        testFBO(&frameBufferObjectC, videoTexture);
-        testFBO(&frameBufferObjectD, videoTexture);
+        testFBO(&frameBufferObjectA, videoTexture->width(), videoTexture->height());
+        testFBO(&frameBufferObjectB, videoTexture->width(), videoTexture->height());
+        testFBO(&frameBufferObjectC, videoTexture->width(), videoTexture->height());
+        testFBO(&frameBufferObjectD, videoTexture->width(), videoTexture->height());
 
         // RESIZE THE BYTE ARRAYS AS NEEDED
         if (memoryObject[0].width() != (unsigned int)videoTexture->width() || memoryObject[0].height() != (unsigned int)videoTexture->height()) {
@@ -345,7 +525,7 @@ void LAUCalTagGLObject::processGL(QOpenGLTexture *videoTexture, QOpenGLFramebuff
         }
 
         // BINARIZE THE INCOMING BUFFER
-        binarize(frameBufferObjectA, frameBufferObjectB, frameBufferObjectC, videoTexture);
+        binarize(videoTexture, frameBufferObjectA, frameBufferObjectB, frameBufferObjectC);
         sobel(frameBufferObjectC, frameBufferObjectB);
         cleanUp(frameBufferObjectB, frameBufferObjectA);
         //dilationErosion(frameBufferObjectA, frameBufferObjectB);
@@ -420,67 +600,23 @@ void LAUCalTagGLObject::processGL(QOpenGLTexture *videoTexture, QOpenGLFramebuff
 /****************************************************************************/
 /****************************************************************************/
 /****************************************************************************/
-void LAUCalTagGLObject::paintGL()
-{
-    if (frameBufferObjectB) {
-        // DISPLAY THE LAST FBO IN OUR LIST
-        if (programK.bind()) {
-            if (quadVertexBuffer.bind()) {
-                if (quadIndexBuffer.bind()) {
-                    // SET THE ACTIVE TEXTURE ON THE GPU
-                    glActiveTexture(GL_TEXTURE0);
-                    glBindTexture(GL_TEXTURE_2D, frameBufferObjectB->texture());
-                    programK.setUniformValue("qt_texture", 0);
-
-                    // TELL OPENGL PROGRAMMABLE PIPELINE HOW TO LOCATE VERTEX POSITION DATA
-                    programK.setAttributeBuffer("qt_vertex", GL_FLOAT, 0, 4, 4 * sizeof(float));
-                    programK.enableAttributeArray("qt_vertex");
-
-                    glDrawElements(GL_TRIANGLES, 6, GL_UNSIGNED_INT, 0);
-
-                    quadIndexBuffer.release();
-                }
-                quadVertexBuffer.release();
-            }
-            programK.release();
-        }
-    }
-}
-
-/****************************************************************************/
-/****************************************************************************/
-/****************************************************************************/
-LAUMemoryObject LAUCalTagGLObject::grabImage()
-{
-    LAUMemoryObject object;
-    if (frameBufferObjectB) {
-        object = LAUMemoryObject(frameBufferObjectB->width(), frameBufferObjectB->height(), 3, sizeof(float));
-        glBindTexture(GL_TEXTURE_2D, frameBufferObjectB->texture());
-        glGetTexImage(GL_TEXTURE_2D, 0, GL_RGB, GL_FLOAT, object.constPointer());
-    }
-    return (object);
-}
-
-/****************************************************************************/
-/****************************************************************************/
-/****************************************************************************/
-void LAUCalTagGLObject::testFBO(QOpenGLFramebufferObject *fbo[], QOpenGLTexture *videoTexture)
+void LAUCalTagGLObject::testFBO(QOpenGLFramebufferObject *fbo[], int cols, int rows)
 {
     if ((*fbo) == NULL) {
         // CREATE A FORMAT OBJECT FOR CREATING THE FRAME BUFFER
         QOpenGLFramebufferObjectFormat frameBufferObjectFormat;
         frameBufferObjectFormat.setInternalTextureFormat(GL_RGBA32F);
 
-        (*fbo) = new QOpenGLFramebufferObject(videoTexture->width(), videoTexture->height(), frameBufferObjectFormat);
+        (*fbo) = new QOpenGLFramebufferObject(cols, rows, frameBufferObjectFormat);
         (*fbo)->release();
-    } else if ((*fbo)->width() != videoTexture->width() || (*fbo)->height() != videoTexture->height()) {
+    } else if ((*fbo)->width() != cols || (*fbo)->height() != rows) {
         delete (*fbo);
 
         // CREATE A FORMAT OBJECT FOR CREATING THE FRAME BUFFER
         QOpenGLFramebufferObjectFormat frameBufferObjectFormat;
         frameBufferObjectFormat.setInternalTextureFormat(GL_RGBA32F);
 
-        (*fbo) = new QOpenGLFramebufferObject(videoTexture->width(), videoTexture->height(), frameBufferObjectFormat);
+        (*fbo) = new QOpenGLFramebufferObject(cols, rows, frameBufferObjectFormat);
         (*fbo)->release();
     }
 }
@@ -488,228 +624,7 @@ void LAUCalTagGLObject::testFBO(QOpenGLFramebufferObject *fbo[], QOpenGLTexture 
 /****************************************************************************/
 /****************************************************************************/
 /****************************************************************************/
-void LAUCalTagGLObject::dilationErosion(QOpenGLFramebufferObject *fboA, QOpenGLFramebufferObject *fboB)
-{
-    // APPLY EROSION AS THE MIN FILTER OPERATION
-    if (fboB && fboB->bind()) {
-        if (programH.bind()) {
-            // CLEAR THE FRAME BUFFER OBJECT
-            glViewport(1, 1, fboB->width() - 2, fboB->height() - 2);
-            glClearColor(0.0f, 0.0f, 0.0f, 0.0f);
-            glClear(GL_COLOR_BUFFER_BIT);
-
-            // BIND VBOS FOR DRAWING TRIANGLES ON SCREEN
-            if (quadVertexBuffer.bind()) {
-                if (quadIndexBuffer.bind()) {
-                    // BIND THE TEXTURE FROM THE FRAME BUFFER OBJECT
-                    glActiveTexture(GL_TEXTURE0);
-                    glBindTexture(GL_TEXTURE_2D, fboA->texture());
-                    programH.setUniformValue("qt_texture", 0);
-
-                    // SET THE MEDIAN FILTER RADIUS
-                    programH.setUniformValue("qt_radius", 1);
-
-                    // TELL OPENGL PROGRAMMABLE PIPELINE HOW TO LOCATE VERTEX POSITION DATA
-                    glVertexAttribPointer(programH.attributeLocation("qt_vertex"), 4, GL_FLOAT, GL_FALSE, 4 * sizeof(float), 0);
-                    programH.enableAttributeArray("qt_vertex");
-                    glDrawElements(GL_TRIANGLES, 6, GL_UNSIGNED_INT, 0);
-
-                    // RELEASE THE FRAME BUFFER OBJECT AND ITS ASSOCIATED GLSL PROGRAMS
-                    quadIndexBuffer.release();
-                }
-                quadVertexBuffer.release();
-            }
-            programH.release();
-        }
-        fboB->release();
-    }
-
-    // APPLY DILATION AS THE MAX FILTER OPERATION
-    if (fboA && fboA->bind()) {
-        if (programI.bind()) {
-            // CLEAR THE FRAME BUFFER OBJECT
-            glViewport(1, 1, fboA->width() - 2, fboA->height() - 2);
-            glClearColor(0.0f, 0.0f, 0.0f, 0.0f);
-            glClear(GL_COLOR_BUFFER_BIT);
-
-            // BIND VBOS FOR DRAWING TRIANGLES ON SCREEN
-            if (quadVertexBuffer.bind()) {
-                if (quadIndexBuffer.bind()) {
-                    // BIND THE TEXTURE FROM THE FRAME BUFFER OBJECT
-                    glActiveTexture(GL_TEXTURE0);
-                    glBindTexture(GL_TEXTURE_2D, fboB->texture());
-                    programI.setUniformValue("qt_texture", 0);
-
-                    // SET THE MEDIAN FILTER RADIUS
-                    programI.setUniformValue("qt_radius", 1);
-
-                    // TELL OPENGL PROGRAMMABLE PIPELINE HOW TO LOCATE VERTEX POSITION DATA
-                    glVertexAttribPointer(programI.attributeLocation("qt_vertex"), 4, GL_FLOAT, GL_FALSE, 4 * sizeof(float), 0);
-                    programI.enableAttributeArray("qt_vertex");
-                    glDrawElements(GL_TRIANGLES, 6, GL_UNSIGNED_INT, 0);
-
-                    // RELEASE THE FRAME BUFFER OBJECT AND ITS ASSOCIATED GLSL PROGRAMS
-                    quadIndexBuffer.release();
-                }
-                quadVertexBuffer.release();
-            }
-            programI.release();
-        }
-        fboA->release();
-    }
-
-    // COPY THE RESCALED IMAGE BACK TO FRAME BUFFER OBJECT B
-    // QOpenGLFramebufferObject::blitFramebuffer(fboA, fboB);
-}
-
-/****************************************************************************/
-/****************************************************************************/
-/****************************************************************************/
-void LAUCalTagGLObject::cleanUp(QOpenGLFramebufferObject *fboA, QOpenGLFramebufferObject *fboB)
-{
-    for (int n = 0; n < 4; n++) {
-        QOpenGLFramebufferObject *inFBO = NULL;
-        QOpenGLFramebufferObject *otFBO = NULL;
-
-        switch (n) {
-            case 0:
-                inFBO = fboA;
-                otFBO = fboB;
-                textureLUT->setData(QOpenGLTexture::Red, QOpenGLTexture::UInt8, (const void *)bridgeLutA);
-                break;
-            case 1:
-                inFBO = fboA;
-                otFBO = fboB;
-                textureLUT->setData(QOpenGLTexture::Red, QOpenGLTexture::UInt8, (const void *)bridgeLutB);
-                break;
-            case 2:
-                inFBO = fboB;
-                otFBO = fboA;
-                textureLUT->setData(QOpenGLTexture::Red, QOpenGLTexture::UInt8, (const void *)bridgeLutC);
-                break;
-            case 3:
-                inFBO = fboA;
-                otFBO = fboB;
-                textureLUT->setData(QOpenGLTexture::Red, QOpenGLTexture::UInt8, (const void *)bridgeLutD);
-                break;
-        }
-
-        // APPLY A BRIDGE BINARY FILTER TO THE BINARY IMAGE
-        if (otFBO && otFBO->bind()) {
-            if (programG.bind()) {
-                // CLEAR THE FRAME BUFFER OBJECT
-                glViewport(1, 1, otFBO->width() - 2, otFBO->height() - 2);
-                glClearColor(0.0f, 0.0f, 0.0f, 0.0f);
-                glClear(GL_COLOR_BUFFER_BIT);
-
-                // BIND VBOS FOR DRAWING TRIANGLES ON SCREEN
-                if (quadVertexBuffer.bind()) {
-                    if (quadIndexBuffer.bind()) {
-                        // BIND THE TEXTURE FROM THE FRAME BUFFER OBJECT
-                        glActiveTexture(GL_TEXTURE6);
-                        glBindTexture(GL_TEXTURE_2D, inFBO->texture());
-                        programG.setUniformValue("qt_texture", 6);
-
-                        // BIND THE TEXTURE FROM THE FRAME BUFFER OBJECT
-                        glActiveTexture(GL_TEXTURE7);
-                        textureLUT->bind();
-                        programG.setUniformValue("qt_lookUpTable", 7);
-
-                        // TELL OPENGL PROGRAMMABLE PIPELINE HOW TO LOCATE VERTEX POSITION DATA
-                        glVertexAttribPointer(programG.attributeLocation("qt_vertex"), 4, GL_FLOAT, GL_FALSE, 4 * sizeof(float), 0);
-                        programG.enableAttributeArray("qt_vertex");
-                        glDrawElements(GL_TRIANGLES, 6, GL_UNSIGNED_INT, 0);
-
-                        // RELEASE THE FRAME BUFFER OBJECT AND ITS ASSOCIATED GLSL PROGRAMS
-                        quadIndexBuffer.release();
-                    }
-                    quadVertexBuffer.release();
-                }
-                programG.release();
-            }
-            otFBO->release();
-        }
-
-        if (n == 0 && inFBO && inFBO->bind()) {
-            if (programE.bind()) {
-                // CLEAR THE FRAME BUFFER OBJECT
-                glViewport(0, 0, inFBO->width(), inFBO->height());
-                glClearColor(0.0f, 0.0f, 0.0f, 0.0f);
-                glClear(GL_COLOR_BUFFER_BIT);
-
-                // BIND VBOS FOR DRAWING TRIANGLES ON SCREEN
-                if (quadVertexBuffer.bind()) {
-                    if (quadIndexBuffer.bind()) {
-                        // BIND THE TEXTURE FROM THE FRAME BUFFER OBJECT
-                        glActiveTexture(GL_TEXTURE4);
-                        glBindTexture(GL_TEXTURE_2D, otFBO->texture());
-                        programE.setUniformValue("qt_texture", 4);
-
-                        // SET THE MEDIAN FILTER RADIUS
-                        programE.setUniformValue("qt_radius", 1);
-                        programE.setUniformValue("qt_threshold", 4.5f);
-
-                        // Tell OpenGL programmable pipeline how to locate vertex position data
-                        glVertexAttribPointer(programE.attributeLocation("qt_vertex"), 4, GL_FLOAT, GL_FALSE, 4 * sizeof(float), 0);
-                        programE.enableAttributeArray("qt_vertex");
-                        glDrawElements(GL_TRIANGLES, 6, GL_UNSIGNED_INT, 0);
-
-                        // RELEASE THE FRAME BUFFER OBJECT AND ITS ASSOCIATED GLSL PROGRAMS
-                        quadIndexBuffer.release();
-                    }
-                    quadVertexBuffer.release();
-                }
-                programE.release();
-            }
-            inFBO->release();
-        }
-    }
-
-    // COPY THE RESCALED IMAGE BACK TO FRAME BUFFER OBJECT B
-    QOpenGLFramebufferObject::blitFramebuffer(fboB, fboA);
-}
-
-/****************************************************************************/
-/****************************************************************************/
-/****************************************************************************/
-void LAUCalTagGLObject::sobel(QOpenGLFramebufferObject *fboA, QOpenGLFramebufferObject *fboB)
-{
-    // APPLY A SOBEL EDGE DETECTING FILTER TO THE BINARY IMAGE
-    if (fboB && fboB->bind()) {
-        if (programF.bind()) {
-            // CLEAR THE FRAME BUFFER OBJECT
-            glViewport(0, 0, fboB->width(), fboB->height());
-            glClearColor(0.0f, 0.0f, 0.0f, 0.0f);
-            glClear(GL_COLOR_BUFFER_BIT);
-
-            // BIND VBOS FOR DRAWING TRIANGLES ON SCREEN
-            if (quadVertexBuffer.bind()) {
-                if (quadIndexBuffer.bind()) {
-                    // BIND THE TEXTURE FROM THE FRAME BUFFER OBJECT
-                    glActiveTexture(GL_TEXTURE5);
-                    glBindTexture(GL_TEXTURE_2D, fboA->texture());
-                    programF.setUniformValue("qt_texture", 5);
-
-                    // TELL OPENGL PROGRAMMABLE PIPELINE HOW TO LOCATE VERTEX POSITION DATA
-                    glVertexAttribPointer(programF.attributeLocation("qt_vertex"), 4, GL_FLOAT, GL_FALSE, 4 * sizeof(float), 0);
-                    programF.enableAttributeArray("qt_vertex");
-                    glDrawElements(GL_TRIANGLES, 6, GL_UNSIGNED_INT, 0);
-
-                    // RELEASE THE FRAME BUFFER OBJECT AND ITS ASSOCIATED GLSL PROGRAMS
-                    quadIndexBuffer.release();
-                }
-                quadVertexBuffer.release();
-            }
-            programF.release();
-        }
-        fboB->release();
-    }
-}
-
-/****************************************************************************/
-/****************************************************************************/
-/****************************************************************************/
-void LAUCalTagGLObject::binarize(QOpenGLFramebufferObject *fboA, QOpenGLFramebufferObject *fboB, QOpenGLFramebufferObject *fboC, QOpenGLTexture *videoTexture)
+void LAUCalTagGLObject::binarize(QOpenGLTexture *videoTexture, QOpenGLFramebufferObject *fboA, QOpenGLFramebufferObject *fboB, QOpenGLFramebufferObject *fboC)
 {
     // BIND THE FRAME BUFFER OBJECT FOR PROCESSING
     if (fboA && fboA->bind()) {
@@ -893,6 +808,227 @@ void LAUCalTagGLObject::binarize(QOpenGLFramebufferObject *fboA, QOpenGLFramebuf
         // COPY THE RESCALED IMAGE BACK TO FRAME BUFFER OBJECT A TO FBO C
         QOpenGLFramebufferObject::blitFramebuffer(fboC, fboB);
     }
+}
+
+/****************************************************************************/
+/****************************************************************************/
+/****************************************************************************/
+void LAUCalTagGLObject::sobel(QOpenGLFramebufferObject *fboA, QOpenGLFramebufferObject *fboB)
+{
+    // APPLY A SOBEL EDGE DETECTING FILTER TO THE BINARY IMAGE
+    if (fboB && fboB->bind()) {
+        if (programF.bind()) {
+            // CLEAR THE FRAME BUFFER OBJECT
+            glViewport(0, 0, fboB->width(), fboB->height());
+            glClearColor(0.0f, 0.0f, 0.0f, 0.0f);
+            glClear(GL_COLOR_BUFFER_BIT);
+
+            // BIND VBOS FOR DRAWING TRIANGLES ON SCREEN
+            if (quadVertexBuffer.bind()) {
+                if (quadIndexBuffer.bind()) {
+                    // BIND THE TEXTURE FROM THE FRAME BUFFER OBJECT
+                    glActiveTexture(GL_TEXTURE5);
+                    glBindTexture(GL_TEXTURE_2D, fboA->texture());
+                    programF.setUniformValue("qt_texture", 5);
+
+                    // TELL OPENGL PROGRAMMABLE PIPELINE HOW TO LOCATE VERTEX POSITION DATA
+                    glVertexAttribPointer(programF.attributeLocation("qt_vertex"), 4, GL_FLOAT, GL_FALSE, 4 * sizeof(float), 0);
+                    programF.enableAttributeArray("qt_vertex");
+                    glDrawElements(GL_TRIANGLES, 6, GL_UNSIGNED_INT, 0);
+
+                    // RELEASE THE FRAME BUFFER OBJECT AND ITS ASSOCIATED GLSL PROGRAMS
+                    quadIndexBuffer.release();
+                }
+                quadVertexBuffer.release();
+            }
+            programF.release();
+        }
+        fboB->release();
+    }
+}
+
+/****************************************************************************/
+/****************************************************************************/
+/****************************************************************************/
+void LAUCalTagGLObject::cleanUp(QOpenGLFramebufferObject *fboA, QOpenGLFramebufferObject *fboB)
+{
+    for (int n = 0; n < 4; n++) {
+        QOpenGLFramebufferObject *inFBO = NULL;
+        QOpenGLFramebufferObject *otFBO = NULL;
+
+        switch (n) {
+            case 0:
+                inFBO = fboA;
+                otFBO = fboB;
+                textureLUT->setData(QOpenGLTexture::Red, QOpenGLTexture::UInt8, (const void *)bridgeLutA);
+                break;
+            case 1:
+                inFBO = fboA;
+                otFBO = fboB;
+                textureLUT->setData(QOpenGLTexture::Red, QOpenGLTexture::UInt8, (const void *)bridgeLutB);
+                break;
+            case 2:
+                inFBO = fboB;
+                otFBO = fboA;
+                textureLUT->setData(QOpenGLTexture::Red, QOpenGLTexture::UInt8, (const void *)bridgeLutC);
+                break;
+            case 3:
+                inFBO = fboA;
+                otFBO = fboB;
+                textureLUT->setData(QOpenGLTexture::Red, QOpenGLTexture::UInt8, (const void *)bridgeLutD);
+                break;
+        }
+
+        // APPLY A BRIDGE BINARY FILTER TO THE BINARY IMAGE
+        if (otFBO && otFBO->bind()) {
+            if (programG.bind()) {
+                // CLEAR THE FRAME BUFFER OBJECT
+                glViewport(1, 1, otFBO->width() - 2, otFBO->height() - 2);
+                glClearColor(0.0f, 0.0f, 0.0f, 0.0f);
+                glClear(GL_COLOR_BUFFER_BIT);
+
+                // BIND VBOS FOR DRAWING TRIANGLES ON SCREEN
+                if (quadVertexBuffer.bind()) {
+                    if (quadIndexBuffer.bind()) {
+                        // BIND THE TEXTURE FROM THE FRAME BUFFER OBJECT
+                        glActiveTexture(GL_TEXTURE6);
+                        glBindTexture(GL_TEXTURE_2D, inFBO->texture());
+                        programG.setUniformValue("qt_texture", 6);
+
+                        // BIND THE TEXTURE FROM THE FRAME BUFFER OBJECT
+                        glActiveTexture(GL_TEXTURE7);
+                        textureLUT->bind();
+                        programG.setUniformValue("qt_lookUpTable", 7);
+
+                        // TELL OPENGL PROGRAMMABLE PIPELINE HOW TO LOCATE VERTEX POSITION DATA
+                        glVertexAttribPointer(programG.attributeLocation("qt_vertex"), 4, GL_FLOAT, GL_FALSE, 4 * sizeof(float), 0);
+                        programG.enableAttributeArray("qt_vertex");
+                        glDrawElements(GL_TRIANGLES, 6, GL_UNSIGNED_INT, 0);
+
+                        // RELEASE THE FRAME BUFFER OBJECT AND ITS ASSOCIATED GLSL PROGRAMS
+                        quadIndexBuffer.release();
+                    }
+                    quadVertexBuffer.release();
+                }
+                programG.release();
+            }
+            otFBO->release();
+        }
+
+        if (n == 0 && inFBO && inFBO->bind()) {
+            if (programE.bind()) {
+                // CLEAR THE FRAME BUFFER OBJECT
+                glViewport(0, 0, inFBO->width(), inFBO->height());
+                glClearColor(0.0f, 0.0f, 0.0f, 0.0f);
+                glClear(GL_COLOR_BUFFER_BIT);
+
+                // BIND VBOS FOR DRAWING TRIANGLES ON SCREEN
+                if (quadVertexBuffer.bind()) {
+                    if (quadIndexBuffer.bind()) {
+                        // BIND THE TEXTURE FROM THE FRAME BUFFER OBJECT
+                        glActiveTexture(GL_TEXTURE4);
+                        glBindTexture(GL_TEXTURE_2D, otFBO->texture());
+                        programE.setUniformValue("qt_texture", 4);
+
+                        // SET THE MEDIAN FILTER RADIUS
+                        programE.setUniformValue("qt_radius", 1);
+                        programE.setUniformValue("qt_threshold", 4.5f);
+
+                        // Tell OpenGL programmable pipeline how to locate vertex position data
+                        glVertexAttribPointer(programE.attributeLocation("qt_vertex"), 4, GL_FLOAT, GL_FALSE, 4 * sizeof(float), 0);
+                        programE.enableAttributeArray("qt_vertex");
+                        glDrawElements(GL_TRIANGLES, 6, GL_UNSIGNED_INT, 0);
+
+                        // RELEASE THE FRAME BUFFER OBJECT AND ITS ASSOCIATED GLSL PROGRAMS
+                        quadIndexBuffer.release();
+                    }
+                    quadVertexBuffer.release();
+                }
+                programE.release();
+            }
+            inFBO->release();
+        }
+    }
+
+    // COPY THE RESCALED IMAGE BACK TO FRAME BUFFER OBJECT B
+    QOpenGLFramebufferObject::blitFramebuffer(fboB, fboA);
+}
+
+/****************************************************************************/
+/****************************************************************************/
+/****************************************************************************/
+void LAUCalTagGLObject::dilationErosion(QOpenGLFramebufferObject *fboA, QOpenGLFramebufferObject *fboB)
+{
+    // APPLY EROSION AS THE MIN FILTER OPERATION
+    if (fboB && fboB->bind()) {
+        if (programH.bind()) {
+            // CLEAR THE FRAME BUFFER OBJECT
+            glViewport(1, 1, fboB->width() - 2, fboB->height() - 2);
+            glClearColor(0.0f, 0.0f, 0.0f, 0.0f);
+            glClear(GL_COLOR_BUFFER_BIT);
+
+            // BIND VBOS FOR DRAWING TRIANGLES ON SCREEN
+            if (quadVertexBuffer.bind()) {
+                if (quadIndexBuffer.bind()) {
+                    // BIND THE TEXTURE FROM THE FRAME BUFFER OBJECT
+                    glActiveTexture(GL_TEXTURE0);
+                    glBindTexture(GL_TEXTURE_2D, fboA->texture());
+                    programH.setUniformValue("qt_texture", 0);
+
+                    // SET THE MEDIAN FILTER RADIUS
+                    programH.setUniformValue("qt_radius", 1);
+
+                    // TELL OPENGL PROGRAMMABLE PIPELINE HOW TO LOCATE VERTEX POSITION DATA
+                    glVertexAttribPointer(programH.attributeLocation("qt_vertex"), 4, GL_FLOAT, GL_FALSE, 4 * sizeof(float), 0);
+                    programH.enableAttributeArray("qt_vertex");
+                    glDrawElements(GL_TRIANGLES, 6, GL_UNSIGNED_INT, 0);
+
+                    // RELEASE THE FRAME BUFFER OBJECT AND ITS ASSOCIATED GLSL PROGRAMS
+                    quadIndexBuffer.release();
+                }
+                quadVertexBuffer.release();
+            }
+            programH.release();
+        }
+        fboB->release();
+    }
+
+    // APPLY DILATION AS THE MAX FILTER OPERATION
+    if (fboA && fboA->bind()) {
+        if (programI.bind()) {
+            // CLEAR THE FRAME BUFFER OBJECT
+            glViewport(1, 1, fboA->width() - 2, fboA->height() - 2);
+            glClearColor(0.0f, 0.0f, 0.0f, 0.0f);
+            glClear(GL_COLOR_BUFFER_BIT);
+
+            // BIND VBOS FOR DRAWING TRIANGLES ON SCREEN
+            if (quadVertexBuffer.bind()) {
+                if (quadIndexBuffer.bind()) {
+                    // BIND THE TEXTURE FROM THE FRAME BUFFER OBJECT
+                    glActiveTexture(GL_TEXTURE0);
+                    glBindTexture(GL_TEXTURE_2D, fboB->texture());
+                    programI.setUniformValue("qt_texture", 0);
+
+                    // SET THE MEDIAN FILTER RADIUS
+                    programI.setUniformValue("qt_radius", 1);
+
+                    // TELL OPENGL PROGRAMMABLE PIPELINE HOW TO LOCATE VERTEX POSITION DATA
+                    glVertexAttribPointer(programI.attributeLocation("qt_vertex"), 4, GL_FLOAT, GL_FALSE, 4 * sizeof(float), 0);
+                    programI.enableAttributeArray("qt_vertex");
+                    glDrawElements(GL_TRIANGLES, 6, GL_UNSIGNED_INT, 0);
+
+                    // RELEASE THE FRAME BUFFER OBJECT AND ITS ASSOCIATED GLSL PROGRAMS
+                    quadIndexBuffer.release();
+                }
+                quadVertexBuffer.release();
+            }
+            programI.release();
+        }
+        fboA->release();
+    }
+
+    // COPY THE RESCALED IMAGE BACK TO FRAME BUFFER OBJECT B
+    // QOpenGLFramebufferObject::blitFramebuffer(fboA, fboB);
 }
 
 /***************************************************************************/
@@ -1799,179 +1935,43 @@ float LAUCalTagGLObject::angle(cv::Point2f point)
 /****************************************************************************/
 /****************************************************************************/
 /****************************************************************************/
-LAUCalTagFilterWidget::LAUCalTagFilterWidget(LAUCalTagGLObject *object, QWidget *parent) : QWidget(parent)
+LAUMemoryObject LAUCalTagGLObject::grabImage()
 {
-    this->setLayout(new QVBoxLayout());
-    this->setWindowTitle(QString("LAUCalTag Dialog"));
-    this->layout()->setContentsMargins(6, 6, 6, 6);
-    this->layout()->setSpacing(10);
-
-    QGroupBox *box = new QGroupBox(QString("Binarize Parameters"));
-    box->setSizePolicy(QSizePolicy::Expanding, QSizePolicy::Minimum);
-    box->setLayout(new QGridLayout());
-    box->layout()->setContentsMargins(6, 6, 6, 6);
-    ((QGridLayout *)(box->layout()))->setColumnStretch(0, 100);
-    ((QGridLayout *)(box->layout()))->setColumnMinimumWidth(2, 160);
-    this->layout()->addWidget(box);
-
-    iterSpinBox = new QSpinBox();
-    iterSpinBox->setMinimum(1);
-    iterSpinBox->setMaximum(5);
-    iterSpinBox->setFixedWidth(80);
-    iterSpinBox->setAlignment(Qt::AlignRight);
-    connect(iterSpinBox, SIGNAL(valueChanged(int)), object, SLOT(onSetIterations(int)));
-
-    QLabel *label = new QLabel(QString("Gaussian Smoother Iterations:"));
-    label->setSizePolicy(QSizePolicy::Expanding, QSizePolicy::Fixed);
-    label->setAlignment(Qt::AlignRight);
-    ((QGridLayout *)(box->layout()))->addWidget(label, 0, 0, 1, 1, Qt::AlignRight);
-    ((QGridLayout *)(box->layout()))->addWidget(iterSpinBox, 0, 1, 1, 1, Qt::AlignLeft);
-
-    gausSpinBox = new QSpinBox();
-    gausSpinBox->setMinimum(1);
-    gausSpinBox->setMaximum(127);
-    gausSpinBox->setFixedWidth(80);
-    gausSpinBox->setAlignment(Qt::AlignRight);
-    connect(gausSpinBox, SIGNAL(valueChanged(int)), object, SLOT(onSetGaussianRadius(int)));
-
-    label = new QLabel(QString("Guassian Smoother Radius:"));
-    label->setSizePolicy(QSizePolicy::Expanding, QSizePolicy::Fixed);
-    label->setAlignment(Qt::AlignRight);
-    ((QGridLayout *)(box->layout()))->addWidget(label, 0, 2, 1, 1, Qt::AlignRight);
-    ((QGridLayout *)(box->layout()))->addWidget(gausSpinBox, 0, 3, 1, 1, Qt::AlignLeft);
-
-    offsetSpinBox = new QDoubleSpinBox();
-    offsetSpinBox->setMinimum(-1.0);
-    offsetSpinBox->setMaximum(1.0);
-    offsetSpinBox->setSingleStep(0.01);
-    offsetSpinBox->setFixedWidth(80);
-    offsetSpinBox->setAlignment(Qt::AlignRight);
-    connect(offsetSpinBox, SIGNAL(valueChanged(double)), object, SLOT(onSetOffset(double)));
-
-    label = new QLabel(QString("Gaussian Filter Offset:"));
-    label->setSizePolicy(QSizePolicy::Expanding, QSizePolicy::Fixed);
-    label->setAlignment(Qt::AlignRight);
-    ((QGridLayout *)(box->layout()))->addWidget(label, 1, 0, 1, 1, Qt::AlignRight);
-    ((QGridLayout *)(box->layout()))->addWidget(offsetSpinBox, 1, 1, 1, 1, Qt::AlignLeft);
-
-    mednSpinBox = new QSpinBox();
-    mednSpinBox->setMinimum(0);
-    mednSpinBox->setMaximum(127);
-    mednSpinBox->setFixedWidth(80);
-    mednSpinBox->setAlignment(Qt::AlignRight);
-    connect(mednSpinBox, SIGNAL(valueChanged(int)), object, SLOT(onSetMedianRadius(int)));
-
-    label = new QLabel(QString("Median Smoother Radius:"));
-    label->setSizePolicy(QSizePolicy::Expanding, QSizePolicy::Fixed);
-    label->setAlignment(Qt::AlignRight);
-    ((QGridLayout *)(box->layout()))->addWidget(label, 1, 2, 1, 1, Qt::AlignRight);
-    ((QGridLayout *)(box->layout()))->addWidget(mednSpinBox, 1, 3, 1, 1, Qt::AlignLeft);
-
-    box = new QGroupBox(QString("CalTag Parameters"));
-    box->setSizePolicy(QSizePolicy::Expanding, QSizePolicy::Minimum);
-    box->setLayout(new QGridLayout());
-    box->layout()->setContentsMargins(6, 6, 6, 6);
-    ((QGridLayout *)(box->layout()))->setColumnStretch(0, 100);
-    ((QGridLayout *)(box->layout()))->setColumnMinimumWidth(2, 160);
-    this->layout()->addWidget(box);
-
-    minRegionArea = new QSpinBox();
-    minRegionArea->setMinimum(0);
-    minRegionArea->setMaximum(1000000);
-    minRegionArea->setValue(128 - 32);
-    minRegionArea->setFixedWidth(80);
-    connect(minRegionArea, SIGNAL(valueChanged(int)), object, SLOT(onSetMinRegionArea(int)));
-
-    label = new QLabel(QString("Minimum Region Area:"));
-    label->setSizePolicy(QSizePolicy::Expanding, QSizePolicy::Fixed);
-    label->setAlignment(Qt::AlignRight);
-    ((QGridLayout *)(box->layout()))->addWidget(label, 0, 0, 1, 1, Qt::AlignRight);
-    ((QGridLayout *)(box->layout()))->addWidget(minRegionArea, 0, 1, 1, 1, Qt::AlignLeft);
-
-    maxRegionArea = new QSpinBox();
-    maxRegionArea->setMinimum(0);
-    maxRegionArea->setMaximum(1000000);
-    maxRegionArea->setValue((640 * 480) / 16);
-    maxRegionArea->setFixedWidth(80);
-    connect(maxRegionArea, SIGNAL(valueChanged(int)), object, SLOT(onSetMaxRegionArea(int)));
-
-    label = new QLabel(QString("Maximum Region Area:"));
-    label->setSizePolicy(QSizePolicy::Expanding, QSizePolicy::Fixed);
-    label->setAlignment(Qt::AlignRight);
-    ((QGridLayout *)(box->layout()))->addWidget(label, 0, 2, 1, 1, Qt::AlignRight);
-    ((QGridLayout *)(box->layout()))->addWidget(maxRegionArea, 0, 3, 1, 1, Qt::AlignLeft);
-
-    minBoxCount = new QSpinBox();
-    minBoxCount->setMinimum(0);
-    minBoxCount->setMaximum(1000000);
-    minBoxCount->setValue(128);
-    minBoxCount->setFixedWidth(80);
-    connect(minBoxCount, SIGNAL(valueChanged(int)), object, SLOT(onSetMinBoxCount(int)));
-
-    label = new QLabel(QString("Minimum Box Count:"));
-    label->setSizePolicy(QSizePolicy::Expanding, QSizePolicy::Fixed);
-    label->setAlignment(Qt::AlignRight);
-    ((QGridLayout *)(box->layout()))->addWidget(label, 1, 0, 1, 1, Qt::AlignRight);
-    ((QGridLayout *)(box->layout()))->addWidget(minBoxCount, 1, 1, 1, 1, Qt::AlignLeft);
-
-    flipCalTagsFlag = new QCheckBox();
-    flipCalTagsFlag->setCheckable(true);
-    flipCalTagsFlag->setChecked(false);
-    flipCalTagsFlag->setFixedWidth(80);
-    connect(flipCalTagsFlag, SIGNAL(toggled(bool)), object, SLOT(onSetFlipCalTagsFlag(bool)));
-
-    label = new QLabel(QString("Flip CalTag (backlight):"));
-    label->setSizePolicy(QSizePolicy::Expanding, QSizePolicy::Fixed);
-    label->setAlignment(Qt::AlignRight);
-    ((QGridLayout *)(box->layout()))->addWidget(label, 1, 2, 1, 1, Qt::AlignRight);
-    ((QGridLayout *)(box->layout()))->addWidget(flipCalTagsFlag, 1, 3, 1, 1, Qt::AlignLeft);
-
-    // SET THE INITIAL VALUES FROM THE SUPPLIED GLOBJECT
-    iterSpinBox->setValue(object->iterations());
-    gausSpinBox->setValue(object->gaussianRadius());
-    mednSpinBox->setValue(object->medianRadius());
-    offsetSpinBox->setValue(object->offset());
-
-    minRegionArea->setValue(object->minRegion());
-    maxRegionArea->setValue(object->maxRegion());
-    minBoxCount->setValue(object->minBox());
-    flipCalTagsFlag->setChecked(object->flipCalTags());
+    LAUMemoryObject object;
+    if (frameBufferObjectB) {
+        object = LAUMemoryObject(frameBufferObjectB->width(), frameBufferObjectB->height(), 3, sizeof(float));
+        glBindTexture(GL_TEXTURE_2D, frameBufferObjectB->texture());
+        glGetTexImage(GL_TEXTURE_2D, 0, GL_RGB, GL_FLOAT, object.constPointer());
+    }
+    return (object);
 }
 
 /****************************************************************************/
 /****************************************************************************/
 /****************************************************************************/
-void LAUCalTagFilterWidget::load()
+void LAUCalTagGLObject::paintGL()
 {
-    // LOAD THE PARAMETERS FROM SETTINGS
-    QSettings settings;
+    if (frameBufferObjectB) {
+        // DISPLAY THE LAST FBO IN OUR LIST
+        if (programK.bind()) {
+            if (quadVertexBuffer.bind()) {
+                if (quadIndexBuffer.bind()) {
+                    // SET THE ACTIVE TEXTURE ON THE GPU
+                    glActiveTexture(GL_TEXTURE0);
+                    glBindTexture(GL_TEXTURE_2D, frameBufferObjectB->texture());
+                    programK.setUniformValue("qt_texture", 0);
 
-    iterSpinBox->setValue(settings.value(QString("LAUCalTagScanWidget::iterSpinBox"), iterSpinBox->value()).toInt());
-    gausSpinBox->setValue(settings.value(QString("LAUCalTagScanWidget::gausSpinBox"), gausSpinBox->value()).toInt());
-    mednSpinBox->setValue(settings.value(QString("LAUCalTagScanWidget::mednSpinBox"), mednSpinBox->value()).toInt());
-    offsetSpinBox->setValue(settings.value(QString("LAUCalTagScanWidget::offsetSpinBox"), offsetSpinBox->value()).toDouble());
+                    // TELL OPENGL PROGRAMMABLE PIPELINE HOW TO LOCATE VERTEX POSITION DATA
+                    programK.setAttributeBuffer("qt_vertex", GL_FLOAT, 0, 4, 4 * sizeof(float));
+                    programK.enableAttributeArray("qt_vertex");
 
-    minRegionArea->setValue(settings.value(QString("LAUCalTagScanWidget::minRegionArea"), minRegionArea->value()).toInt());
-    maxRegionArea->setValue(settings.value(QString("LAUCalTagScanWidget::maxRegionArea"), maxRegionArea->value()).toInt());
-    minBoxCount->setValue(settings.value(QString("LAUCalTagScanWidget::minBoxCount"), minBoxCount->value()).toInt());
-    flipCalTagsFlag->setChecked(settings.value(QString("LAUCalTagScanWidget::flipCalTagsFlag"), flipCalTagsFlag->isChecked()).toBool());
-}
+                    glDrawElements(GL_TRIANGLES, 6, GL_UNSIGNED_INT, 0);
 
-/****************************************************************************/
-/****************************************************************************/
-/****************************************************************************/
-void LAUCalTagFilterWidget::save()
-{
-    // LOAD THE PARAMETERS FROM SETTINGS
-    QSettings settings;
-
-    settings.setValue(QString("LAUCalTagScanWidget::iterSpinBox"), iterSpinBox->value());
-    settings.setValue(QString("LAUCalTagScanWidget::gausSpinBox"), gausSpinBox->value());
-    settings.setValue(QString("LAUCalTagScanWidget::mednSpinBox"), mednSpinBox->value());
-    settings.setValue(QString("LAUCalTagScanWidget::offsetSpinBox"), offsetSpinBox->value());
-
-    settings.setValue(QString("LAUCalTagScanWidget::minRegionArea"), minRegionArea->value());
-    settings.setValue(QString("LAUCalTagScanWidget::maxRegionArea"), maxRegionArea->value());
-    settings.setValue(QString("LAUCalTagScanWidget::minBoxCount"), minBoxCount->value());
-    settings.setValue(QString("LAUCalTagScanWidget::flipCalTagsFlag"), flipCalTagsFlag->isChecked());
+                    quadIndexBuffer.release();
+                }
+                quadVertexBuffer.release();
+            }
+            programK.release();
+        }
+    }
 }

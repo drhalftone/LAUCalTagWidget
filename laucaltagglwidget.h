@@ -63,70 +63,6 @@ public:
     explicit LAUCalTagGLWidget(QWidget *parent = NULL);
     ~LAUCalTagGLWidget();
 
-    double offset() const
-    {
-        if (calTagGLObject) {
-            return (calTagGLObject->offset());
-        }
-        return (-1.0f);
-    }
-
-    unsigned int medianRadius() const
-    {
-        if (calTagGLObject) {
-            return (calTagGLObject->medianRadius());
-        }
-        return (0);
-    }
-
-    unsigned int gaussianRadius() const
-    {
-        if (calTagGLObject) {
-            return (calTagGLObject->gaussianRadius());
-        }
-        return (0);
-    }
-
-    unsigned int iterations() const
-    {
-        if (calTagGLObject) {
-            return (calTagGLObject->iterations());
-        }
-        return (0);
-    }
-
-    int minRegion() const
-    {
-        if (calTagGLObject) {
-            return (calTagGLObject->minRegion());
-        }
-        return (0);
-    }
-
-    int maxRegion() const
-    {
-        if (calTagGLObject) {
-            return (calTagGLObject->maxRegion());
-        }
-        return (0);
-    }
-
-    int minBox() const
-    {
-        if (calTagGLObject) {
-            return (calTagGLObject->minBox());
-        }
-        return (0);
-    }
-
-    bool flipCalTags() const
-    {
-        if (calTagGLObject) {
-            return (calTagGLObject->flipCalTags());
-        }
-        return (false);
-    }
-
     LAUCalTagFilterWidget *widget(QWidget *parent = NULL)
     {
         if (calTagGLObject) {
@@ -135,64 +71,16 @@ public:
         return (NULL);
     }
 
-    LAUMemoryObject grabImage();
+    LAUMemoryObject grabImage()
+    {
+        LAUMemoryObject object;
+        if (calTagGLObject && calTagGLObject->isValid()) {
+            object = calTagGLObject->grabImage();
+        }
+        return (object);
+    }
 
 public slots:
-    void onSetOffset(double val)
-    {
-        if (calTagGLObject) {
-            calTagGLObject->onSetOffset(val);
-        }
-    }
-
-    void onSetMedianRadius(int val)
-    {
-        if (calTagGLObject) {
-            calTagGLObject->onSetMedianRadius(val);
-        }
-    }
-
-    void onSetGaussianRadius(int val)
-    {
-        if (calTagGLObject) {
-            calTagGLObject->onSetGaussianRadius(val);
-        }
-    }
-
-    void onSetIterations(int val)
-    {
-        if (calTagGLObject) {
-            calTagGLObject->onSetIterations(val);
-        }
-    }
-
-    void onSetMinRegionArea(int val)
-    {
-        if (calTagGLObject) {
-            calTagGLObject->onSetMinRegionArea(val);
-        }
-    }
-
-    void onSetMaxRegionArea(int val)
-    {
-        if (calTagGLObject) {
-            calTagGLObject->onSetMaxRegionArea(val);
-        }
-    }
-
-    void onSetMinBoxCount(int val)
-    {
-        if (calTagGLObject) {
-            calTagGLObject->onSetMinBoxCount(val);
-        }
-    }
-
-    void onSetFlipCalTagsFlag(bool val)
-    {
-        if (calTagGLObject) {
-            calTagGLObject->onSetFlipCalTagsFlag(val);
-        }
-    }
 
 protected:
     void initialize();

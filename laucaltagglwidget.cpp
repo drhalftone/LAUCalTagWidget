@@ -128,15 +128,3 @@ void LAUCalTagGLWidget::paint()
         LAUVideoGLWidget::paint();
     }
 }
-
-/****************************************************************************/
-/****************************************************************************/
-/****************************************************************************/
-LAUMemoryObject LAUCalTagGLWidget::grabImage()
-{
-    LAUMemoryObject object;
-    if (calTagGLObject && calTagGLObject->isValid()) {
-        object = calTagGLObject->grabImage();
-    }
-    return (object);
-}

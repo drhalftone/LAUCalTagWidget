@@ -163,6 +163,60 @@ void LAUVideoGLWidget::setFrame(const QVideoFrame &frame)
 /****************************************************************************/
 /****************************************************************************/
 /****************************************************************************/
+void LAUVideoGLWidget::setFrame(LAUMemoryObject object)
+{
+    if (object.isNull() == false) {
+        if (wasInitialized()) {
+            // REPORT FRAME RATE TO THE CONSOLE
+            counter++;
+            if (counter >= 30) {
+                qDebug() << QString("%1 fps").arg(1000.0 * (float)counter / (float)time.elapsed());
+                time.restart();
+                counter = 0;
+            }
+
+            makeCurrent();
+
+            // SEE IF WE NEED A NEW TEXTURE TO HOLD THE INCOMING VIDEO FRAME
+            if (!videoTexture || videoTexture->width() != object.width() || videoTexture->height() != object.height()) {
+                if (videoTexture) {
+                    delete videoTexture;
+                }
+
+                // CREATE THE GPU SIDE TEXTURE BUFFER TO HOLD THE INCOMING VIDEO
+                videoTexture = new QOpenGLTexture(QOpenGLTexture::Target2D);
+                videoTexture->setSize(object.width(), object.height());
+                videoTexture->setFormat(QOpenGLTexture::RGBA32F);
+                videoTexture->setWrapMode(QOpenGLTexture::ClampToBorder);
+                videoTexture->setMinificationFilter(QOpenGLTexture::Nearest);
+                videoTexture->setMagnificationFilter(QOpenGLTexture::Nearest);
+                videoTexture->allocateStorage();
+
+                qDebug() << videoTexture->width() << videoTexture->height();
+            }
+
+            // UPLOAD THE IMAGE TO THE GPU TEXTURE
+            videoTexture->setData(QOpenGLTexture::Red, QOpenGLTexture::UInt8, (const void *)object.constPointer(), &options);
+
+            // PROCESS THE TEXTURE
+            process();
+
+            // COPY THE FRAME BACK FROM THE GPU TO THE CPU
+            //glBindTexture(GL_TEXTURE_2D, videoTexture->textureId());
+            //glPixelStorei(GL_PACK_ALIGNMENT, 1);
+            //glGetTexImage(GL_TEXTURE_2D, 0, GL_RED, GL_UNSIGNED_SHORT, (unsigned char *)object.constPointer());
+            //object.save("/tmp/basler.tif");
+
+            // UPDATE THE USER DISPLAY
+            update();
+        }
+    }
+    emit emitFrame(object);
+}
+
+/****************************************************************************/
+/****************************************************************************/
+/****************************************************************************/
 void LAUVideoGLWidget::setFrame(QImage frame)
 {
     if (frame.isNull() == false) {
@@ -326,6 +380,7 @@ void LAUVideoGLWidget::paint()
                     glActiveTexture(GL_TEXTURE0);
                     videoTexture->bind();
                     program.setUniformValue("qt_texture", 0);
+                    program.setUniformValue("qt_maxPixelValue", 64.0f);
 
                     // TELL OPENGL PROGRAMMABLE PIPELINE HOW TO LOCATE VERTEX POSITION DATA
                     program.setAttributeBuffer("qt_vertex", GL_FLOAT, 0, 4, 4 * sizeof(float));

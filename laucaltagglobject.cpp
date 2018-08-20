@@ -526,18 +526,20 @@ void LAUCalTagGLObject::processGL(QOpenGLTexture *videoTexture, QOpenGLFramebuff
 
         // BINARIZE THE INCOMING BUFFER
         binarize(videoTexture, frameBufferObjectA, frameBufferObjectB, frameBufferObjectC);
-        sobel(frameBufferObjectC, frameBufferObjectB);
-        cleanUp(frameBufferObjectB, frameBufferObjectA);
+        //sobel(frameBufferObjectC, frameBufferObjectB);
+        //cleanUp(frameBufferObjectB, frameBufferObjectA);
         //dilationErosion(frameBufferObjectA, frameBufferObjectB);
 
         // DOWNLOAD THE RESULTING BINARY TEXTURE TO OUR MEMORY BUFFER FOR FURTHER PROCESSING
         glBindTexture(GL_TEXTURE_2D, frameBufferObjectA->texture());
         glPixelStorei(GL_PACK_ALIGNMENT, 1);
         glGetTexImage(GL_TEXTURE_2D, 0, GL_RED, GL_UNSIGNED_BYTE, (unsigned char *)memoryObject[0].constPointer());
+        memoryObject[0].save(QString("/tmp/memoryA.tif"));
 
         glBindTexture(GL_TEXTURE_2D, frameBufferObjectC->texture());
         glPixelStorei(GL_PACK_ALIGNMENT, 1);
         glGetTexImage(GL_TEXTURE_2D, 0, GL_RED, GL_UNSIGNED_BYTE, (unsigned char *)memoryObject[1].constPointer());
+        memoryObject[1].save(QString("/tmp/memoryB.tif"));
 
         // LOOK FOR CALTAGS AND GET THE CR TO XYZ TRANSFORM
         bool okay = false;

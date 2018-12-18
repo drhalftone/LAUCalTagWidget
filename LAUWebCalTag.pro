@@ -30,7 +30,7 @@
 #                                                                               #
 #-------------------------------------------------
 
-CONFIG  += basler
+CONFIG  -= basler
 
 QT      += core gui multimedia widgets multimediawidgets opengl
 TARGET   = LAUWebCalTag
@@ -98,15 +98,15 @@ unix:!macx {
 }
 
 win32 {
-    INCLUDEPATH   += $$quote(C:/usr/opencv/build/include) $$quote(C:/usr/include)
-    DEPENDPATH    += $$quote(C:/usr/opencv/build/include) $$quote(C:/usr/include)
-    LIBS          += -L$$quote(C:/usr/lib) -L$$quote(C:/usr/opencv/build/x64/vc12/lib) -llibtiff_i -lopengl32
-    CONFIG(release, debug|release): LIBS += -lopencv_world310
-    CONFIG(debug, debug|release):   LIBS += -lopencv_world310d
+    INCLUDEPATH   += $$quote(C:/usr/opencv/include) $$quote(C:/usr/include)
+    DEPENDPATH    += $$quote(C:/usr/opencv/include) $$quote(C:/usr/include)
+    LIBS          += -L$$quote(C:/usr/lib) -L$$quote(C:/usr/opencv/x64/vc15/lib) -llibtiff_i -lopengl32
+    CONFIG(release, debug|release): LIBS += -lopencv_world342
+    CONFIG(debug, debug|release):   LIBS += -lopencv_world342d
 
     basler{
         INCLUDEPATH += $$quote(C:/Program Files/Basler/pylon 5/Development/include)
         DEPENDPATH  += $$quote(C:/Program Files/Basler/pylon 5/Development/include)
-        LIBS        += -L$$quote(C:/Program Files/Basler/pylon 5/Development/lib/x64/) -lPylonBase_MD_VC120_v5_0
+        LIBS        += -L$$quote(C:/Program Files/Basler/pylon 5/Development/lib/x64/) -lPylonBase_v5_1
     }
 }

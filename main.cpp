@@ -40,7 +40,10 @@ int main(int argc, char *argv[])
     QApplication a(argc, argv);
     a.setOrganizationName(QString("Lau Consulting Inc"));
     a.setOrganizationDomain(QString("drhalftone.com"));
-    a.setApplicationName(QString("LAURealSense"));
+    a.setApplicationName(QString("LAUMultiPathRecorder"));
+    a.setAttribute(Qt::AA_EnableHighDpiScaling);
+    a.setAttribute(Qt::AA_UseDesktopOpenGL);
+    a.setQuitOnLastWindowClosed(true);
 
     QSurfaceFormat format;
     format.setDepthBufferSize(10);
@@ -52,7 +55,7 @@ int main(int argc, char *argv[])
 
     qRegisterMetaType<LAUMemoryObject>("LAUMemoryObject");
 
-#ifndef DONTCOMPILE
+#ifdef DONTCOMPILE
     LAUWebCameraDialog w(QCamera::CaptureVideo);
     if (w.isValid()) {
         return w.exec();

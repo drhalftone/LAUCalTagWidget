@@ -197,6 +197,7 @@ LAUCalTagFilterWidget::LAUCalTagFilterWidget(LAUCalTagGLObject *object, QWidget 
     offsetSpinBox->setMinimum(-1.0);
     offsetSpinBox->setMaximum(1.0);
     offsetSpinBox->setSingleStep(0.01);
+    offsetSpinBox->setDecimals(4);
     offsetSpinBox->setFixedWidth(80);
     offsetSpinBox->setAlignment(Qt::AlignRight);
     connect(offsetSpinBox, SIGNAL(valueChanged(double)), object, SLOT(onSetOffset(double)));
@@ -526,20 +527,20 @@ void LAUCalTagGLObject::processGL(QOpenGLTexture *videoTexture, QOpenGLFramebuff
 
         // BINARIZE THE INCOMING BUFFER
         binarize(videoTexture, frameBufferObjectA, frameBufferObjectB, frameBufferObjectC);
-        //sobel(frameBufferObjectC, frameBufferObjectB);
-        //cleanUp(frameBufferObjectB, frameBufferObjectA);
+        sobel(frameBufferObjectC, frameBufferObjectB);
+        cleanUp(frameBufferObjectB, frameBufferObjectA);
         //dilationErosion(frameBufferObjectA, frameBufferObjectB);
 
         // DOWNLOAD THE RESULTING BINARY TEXTURE TO OUR MEMORY BUFFER FOR FURTHER PROCESSING
         glBindTexture(GL_TEXTURE_2D, frameBufferObjectA->texture());
         glPixelStorei(GL_PACK_ALIGNMENT, 1);
         glGetTexImage(GL_TEXTURE_2D, 0, GL_RED, GL_UNSIGNED_BYTE, (unsigned char *)memoryObject[0].constPointer());
-        memoryObject[0].save(QString("/tmp/memoryA.tif"));
+        memoryObject[0].save(QString("C:/memoryA.tif"));
 
         glBindTexture(GL_TEXTURE_2D, frameBufferObjectC->texture());
         glPixelStorei(GL_PACK_ALIGNMENT, 1);
         glGetTexImage(GL_TEXTURE_2D, 0, GL_RED, GL_UNSIGNED_BYTE, (unsigned char *)memoryObject[1].constPointer());
-        memoryObject[1].save(QString("/tmp/memoryB.tif"));
+        memoryObject[1].save(QString("C:/memoryB.tif"));
 
         // LOOK FOR CALTAGS AND GET THE CR TO XYZ TRANSFORM
         bool okay = false;
@@ -1062,6 +1063,7 @@ cv::Mat LAUCalTagGLObject::detectCalTagGrid(LAUMemoryObject sbObj, LAUMemoryObje
 
     // GET A GOOD APPROXIMATION OF WHERE THE SADDLE POINTS ARE
     quads = findSaddles(quads);
+    //quads = organizeSquares(quads);
 
     // DECODE THE CALTAG SQUARES
     cv::vector<cv::vector<cv::Point2f>> coordinates = findPattern(inImage, quads, flipCalTags);
@@ -1156,7 +1158,7 @@ cv::vector<cv::vector<cv::Point2f>> LAUCalTagGLObject::quadArea(cv::Mat sbImage,
     // FOR EACH CONTOUR, APPROXIMATE IT WITH A POLYGON
     for (unsigned int i = 0; i < contours.size(); ++i) {
         contoursPoly.push_back(contours[i]);
-        cv::approxPolyDP(contours[i], contoursPoly[i], 3.0, true);
+        cv::approxPolyDP(contours[i], contoursPoly[i], 10.0, true);
         if (contoursPoly[i].size() == 4 && cv::isContourConvex(contoursPoly[i])) {
             int area = cv::contourArea(contoursPoly[i]);
             if (area > minArea && area < maxArea) {
@@ -1483,6 +1485,10 @@ cv::vector<cv::vector<cv::Point2f>> LAUCalTagGLObject::findPattern(cv::Mat inIma
                 square.push_back(sqPoints[3] + point);
                 square.push_back(sqPoints[0] + point);
                 outputSquares.push_back(square);
+
+                // PRINT OUT THE IMAGE COORDINATES AND THE DETECTED CODE
+                //qDebug() << n << squares[n][0].x << squares[n][0].y << squares[n][1].x << squares[n][1].y << squares[n][2].x << squares[n][2].y << squares[n][3].x << squares[n][3].y <<  code;
+                //qDebug() << n << square[0].x << square[0].y << square[1].x << square[1].y << square[2].x << square[2].y << square[3].x << square[3].y <<  code;
             }
         }
     }
@@ -1590,6 +1596,34 @@ cv::vector<cv::vector<cv::Point2f>> LAUCalTagGLObject::organizeSquares(cv::vecto
 bool LAUCalTagGLObject::checkBitCode(int code, cv::Point2f *pt)
 {
     // DEFINE LOOK-UP TABLE
+#ifdef USESQUARECALTAGTARGET
+    static const int realBitCodes[15][15] = {
+        {8578, 12720, 56439, 52567, 56677, 52293, 40038, 36166, 40308, 63606, 59734, 63844, 59460, 47207, 43335},
+        {47477, 65079, 61207, 60933, 48678, 48948, 55862, 51990, 56100, 51716, 39463, 35591, 39733, 35349, 53107},
+        {56915, 57153, 36706, 40514, 36464, 40784, 60274, 64082, 60000, 43875, 47683, 43633, 47953, 60723, 64531},
+        {60449, 64769, 44322, 48130, 44080, 51506, 55314, 55552, 35107, 38915, 34865, 39185, 23879, 19829, 3190},
+        {7510, 3428, 7236, 31046, 26996, 30804, 10359, 14679, 14405, 28199, 32519, 28469, 32277, 11830, 16150},
+        {12068, 15876, 18982, 23302, 19252, 23060, 6935, 2853, 6661, 24419, 24177, 20305, 8050, 3666, 7776},
+        {31586, 27202, 31344, 27472, 15219, 10835, 14945, 11073, 32035, 27651, 31793, 27921, 15666, 11282, 11520},
+        {22818, 22576, 18704, 6451, 6177, 54646, 50262, 54372, 50500, 38247, 33863, 38005, 34133, 61815, 57431},
+        {57669, 45414, 41030, 45172, 41300, 63286, 58902, 63012, 59140, 46887, 42503, 46645, 42773, 54071, 49687},
+        {53797, 49925, 37670, 33286, 37428, 50802, 55122, 51040, 34403, 38723, 34673, 38481, 57971, 62291, 58209},
+        {62017, 41570, 45890, 41840, 45648, 58418, 62738, 58656, 62464, 42019, 46339, 42289, 46097, 49203, 53523},
+        {49441, 53249, 37122, 33072, 17766, 21574, 17524, 21844, 5207, 1125, 5445, 24935, 28743, 24693, 29013},
+        {8566, 12374, 8292, 12612, 26406, 30214, 26164, 30484, 10039, 13847, 9765, 14085, 17191, 20999, 16949},
+        {21269, 822, 4630, 4868, 22114, 18242, 22384, 18000, 5747, 1875, 5985, 1601, 29283, 25411, 29553},
+        {25169, 12914, 9042, 13152, 29730, 25858, 30000, 25616, 13363, 9491, 13601, 20515, 16643, 20785, 4146}
+    };
+
+    for (int i = 0; i < 15; i++) {
+        for (int j = 14; j >= 0; j--) {
+            if (code == realBitCodes[i][j]) {
+                *pt = cv::Point2f((float)(j - 7), (float)(i - 7));
+                return (true);
+            }
+        }
+    }
+#else
     static const int realBitCodes[20][14] = {
         {19853,	19918,	20121,	20186,	20373,	20438,	20497,	20562,	20692,	20765,	20830,	20891,	20952,	21001},
         {18674,	18747,	18808,	18877,	18942,	18991,	19052,	19113,	19235,	19296,	19365,	19650,	19723,	19784},
@@ -1623,6 +1657,7 @@ bool LAUCalTagGLObject::checkBitCode(int code, cv::Point2f *pt)
             }
         }
     }
+#endif
     return (false);
 }
 

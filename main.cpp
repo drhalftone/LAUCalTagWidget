@@ -58,7 +58,7 @@ int main(int argc, char *argv[])
         return w.exec();
     }
 #else
-    LAUCalTagDialog w((QImage()));
+    LAUCalTagDialog w((LAUMemoryObject(QString())));
     return w.exec();
 #endif
     return (0);

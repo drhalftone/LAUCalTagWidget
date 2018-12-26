@@ -195,8 +195,31 @@ void LAUVideoGLWidget::setFrame(LAUMemoryObject object)
                 qDebug() << videoTexture->width() << videoTexture->height();
             }
 
-            // UPLOAD THE IMAGE TO THE GPU TEXTURE
-            videoTexture->setData(QOpenGLTexture::Red, QOpenGLTexture::UInt8, (const void *)object.constPointer(), &options);
+            if (object.colors() == 1) {
+                if (object.depth() == sizeof(unsigned char)) {
+                    videoTexture->setData(QOpenGLTexture::Red, QOpenGLTexture::UInt8, (const void *)object.constPointer());
+                } else if (object.depth() == sizeof(unsigned short)) {
+                    videoTexture->setData(QOpenGLTexture::Red, QOpenGLTexture::UInt16, (const void *)object.constPointer());
+                } else if (object.depth() == sizeof(float)) {
+                    videoTexture->setData(QOpenGLTexture::Red, QOpenGLTexture::Float32, (const void *)object.constPointer());
+                }
+            } else if (object.colors() == 3) {
+                if (object.depth() == sizeof(unsigned char)) {
+                    videoTexture->setData(QOpenGLTexture::RGB, QOpenGLTexture::UInt8, (const void *)object.constPointer());
+                } else if (object.depth() == sizeof(unsigned short)) {
+                    videoTexture->setData(QOpenGLTexture::RGB, QOpenGLTexture::UInt16, (const void *)object.constPointer());
+                } else if (object.depth() == sizeof(float)) {
+                    videoTexture->setData(QOpenGLTexture::RGB, QOpenGLTexture::Float32, (const void *)object.constPointer());
+                }
+            } else if (object.colors() == 4) {
+                if (object.depth() == sizeof(unsigned char)) {
+                    videoTexture->setData(QOpenGLTexture::RGBA, QOpenGLTexture::UInt8, (const void *)object.constPointer());
+                } else if (object.depth() == sizeof(unsigned short)) {
+                    videoTexture->setData(QOpenGLTexture::RGBA, QOpenGLTexture::UInt16, (const void *)object.constPointer());
+                } else if (object.depth() == sizeof(float)) {
+                    videoTexture->setData(QOpenGLTexture::RGBA, QOpenGLTexture::Float32, (const void *)object.constPointer());
+                }
+            }
 
             // PROCESS THE TEXTURE
             process();
@@ -209,6 +232,8 @@ void LAUVideoGLWidget::setFrame(LAUMemoryObject object)
 
             // UPDATE THE USER DISPLAY
             update();
+        } else {
+            localMemoryObject = object;
         }
     }
     emit emitFrame(object);
@@ -343,6 +368,8 @@ void LAUVideoGLWidget::initializeGL()
         setFrame(localVideoFrame);
     } else if (localImage.isNull() == false) {
         setFrame(localImage);
+    } else if (localMemoryObject.isNull() == false) {
+        setFrame(localMemoryObject);
     }
 }
 

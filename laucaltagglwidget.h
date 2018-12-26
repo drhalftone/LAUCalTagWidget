@@ -60,15 +60,15 @@ class LAUCalTagGLWidget : public LAUVideoGLWidget
     Q_OBJECT
 
 public:
-    explicit LAUCalTagGLWidget(QWidget *parent = NULL);
+    explicit LAUCalTagGLWidget(QWidget *parent = nullptr);
     ~LAUCalTagGLWidget();
 
-    LAUCalTagFilterWidget *widget(QWidget *parent = NULL)
+    LAUCalTagFilterWidget *widget(QWidget *parent = nullptr)
     {
         if (calTagGLObject) {
             return (calTagGLObject->widget(parent));
         }
-        return (NULL);
+        return (nullptr);
     }
 
     LAUMemoryObject grabImage()
@@ -99,8 +99,9 @@ class LAUCalTagWidget : public QWidget
     Q_OBJECT
 
 public:
-    LAUCalTagWidget(QImage image, QWidget *parent = NULL);
-    LAUCalTagWidget(QWidget *parent = NULL);
+    LAUCalTagWidget(QImage image, QWidget *parent = nullptr);
+    LAUCalTagWidget(LAUMemoryObject image, QWidget *parent = nullptr);
+    LAUCalTagWidget(QWidget *parent = nullptr);
     ~LAUCalTagWidget()
     {
         qDebug() << "LAUCalTagWidget::~LAUCalTagWidget()";
@@ -188,30 +189,8 @@ class LAUCalTagDialog : public QDialog
     Q_OBJECT
 
 public:
-    LAUCalTagDialog(QImage image, QWidget *parent = 0) : QDialog(parent)
-    {
-        if (image.isNull()) {
-            QSettings settings;
-            QString directory = settings.value("LAUCalTagDialog::lastUsedDirectory", QStandardPaths::writableLocation(QStandardPaths::DocumentsLocation)).toString();
-            QString filename = QFileDialog::getOpenFileName(0, QString("Load image from disk"), directory, QString("*.tif *.tiff *.bmp *.jpg *.jpeg"));
-            if (filename.isEmpty() == false) {
-                settings.setValue("LAUCalTagDialog::lastUsedDirectory", QFileInfo(filename).absolutePath());
-            } else {
-                return;
-            }
-            image = QImage(filename);
-        }
-
-        this->setLayout(new QVBoxLayout());
-        this->layout()->setContentsMargins(0, 0, 0, 0);
-        widget = new LAUCalTagWidget(image);
-        this->layout()->addWidget(widget);
-
-        QDialogButtonBox *buttonBox = new QDialogButtonBox(QDialogButtonBox::Ok | QDialogButtonBox::Cancel);
-        connect(buttonBox->button(QDialogButtonBox::Ok), SIGNAL(clicked()), this, SLOT(accept()));
-        connect(buttonBox->button(QDialogButtonBox::Cancel), SIGNAL(clicked()), this, SLOT(reject()));
-        this->layout()->addWidget(buttonBox);
-    }
+    LAUCalTagDialog(QImage image, QWidget *parent = nullptr);
+    LAUCalTagDialog(LAUMemoryObject image, QWidget *parent = nullptr);
 
 protected:
     void accept()

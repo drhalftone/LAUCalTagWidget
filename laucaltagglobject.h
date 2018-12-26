@@ -45,7 +45,7 @@ class LAUCalTagFilterWidget : public QWidget
     Q_OBJECT
 
 public:
-    LAUCalTagFilterWidget(LAUCalTagGLObject *object, QWidget *parent = NULL);
+    LAUCalTagFilterWidget(LAUCalTagGLObject *object, QWidget *parent = nullptr);
 
     void load();
     void save();
@@ -71,7 +71,7 @@ class LAUCalTagGLObject : public QObject, protected QOpenGLFunctions
     Q_OBJECT
 
 public:
-    LAUCalTagGLObject(QObject *parent = NULL);
+    LAUCalTagGLObject(QObject *parent = nullptr);
     ~LAUCalTagGLObject();
 
     bool isValid() const
@@ -125,13 +125,13 @@ public:
     }
 
     void initializeGL();
-    void processGL(QOpenGLTexture *videoTexture, QOpenGLFramebufferObject *outputFBO = NULL);
+    void processGL(QOpenGLTexture *videoTexture, QOpenGLFramebufferObject *outputFBO = nullptr);
     void paintGL();
 
     LAUMemoryObject grabImage();
 
 #ifndef USEHEADLESS
-    LAUCalTagFilterWidget *widget(QWidget *parent = NULL)
+    LAUCalTagFilterWidget *widget(QWidget *parent = nullptr)
     {
         return (new LAUCalTagFilterWidget(this, parent));
     }
@@ -232,9 +232,9 @@ private:
     void dilationErosion(QOpenGLFramebufferObject *fboA, QOpenGLFramebufferObject *fboB);
 
 #ifdef QT_DEBUG
-    cv::Mat detectCalTagGrid(LAUMemoryObject inObj, LAUMemoryObject sbObj, LAUMemoryObject dbObj, int minBoxes, int minArea, int maxArea, bool flipCalTags, QList<Pairing> &pairings, bool *okay = NULL);
+    cv::Mat detectCalTagGrid(LAUMemoryObject inObj, LAUMemoryObject sbObj, LAUMemoryObject dbObj, int minBoxes, int minArea, int maxArea, bool flipCalTags, QList<Pairing> &pairings, bool *okay = nullptr);
 #else
-    cv::Mat detectCalTagGrid(LAUMemoryObject inObj, LAUMemoryObject sbObj, int minBoxes, int minArea, int maxArea, bool flipCalTags, QList<Pairing> &pairings, bool *okay = NULL);
+    cv::Mat detectCalTagGrid(LAUMemoryObject inObj, LAUMemoryObject sbObj, int minBoxes, int minArea, int maxArea, bool flipCalTags, QList<Pairing> &pairings, bool *okay = nullptr);
 #endif
     cv::Mat findBestQuadraticMapping(cv::vector<cv::Point2f> fmPoints, cv::vector<cv::Point2f> toPoints, int width, int height, int order = 4);
     cv::Mat findBestLinearMapping(cv::vector<cv::Point2f> fmPoints, cv::vector<cv::Point2f> toPoints);

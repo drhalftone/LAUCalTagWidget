@@ -35,7 +35,63 @@
 /****************************************************************************/
 /****************************************************************************/
 /****************************************************************************/
-LAUCalTagWidget::LAUCalTagWidget(QImage image, QWidget *parent) : QWidget(parent), glWidget(NULL), widget(NULL)
+LAUCalTagDialog::LAUCalTagDialog(QImage image, QWidget *parent) : QDialog(parent)
+{
+    if (image.isNull()) {
+        QSettings settings;
+        QString directory = settings.value("LAUCalTagDialog::lastUsedDirectory", QStandardPaths::writableLocation(QStandardPaths::DocumentsLocation)).toString();
+        QString filename = QFileDialog::getOpenFileName(0, QString("Load image from disk"), directory, QString("*.tif *.tiff *.bmp *.jpg *.jpeg"));
+        if (filename.isEmpty() == false) {
+            settings.setValue("LAUCalTagDialog::lastUsedDirectory", QFileInfo(filename).absolutePath());
+        } else {
+            return;
+        }
+        image = QImage(filename);
+    }
+
+    this->setLayout(new QVBoxLayout());
+    this->layout()->setContentsMargins(0, 0, 0, 0);
+    widget = new LAUCalTagWidget(image);
+    this->layout()->addWidget(widget);
+
+    QDialogButtonBox *buttonBox = new QDialogButtonBox(QDialogButtonBox::Ok | QDialogButtonBox::Cancel);
+    connect(buttonBox->button(QDialogButtonBox::Ok), SIGNAL(clicked()), this, SLOT(accept()));
+    connect(buttonBox->button(QDialogButtonBox::Cancel), SIGNAL(clicked()), this, SLOT(reject()));
+    this->layout()->addWidget(buttonBox);
+}
+
+/****************************************************************************/
+/****************************************************************************/
+/****************************************************************************/
+LAUCalTagDialog::LAUCalTagDialog(LAUMemoryObject image, QWidget *parent) : QDialog(parent)
+{
+    if (image.isNull()) {
+        QSettings settings;
+        QString directory = settings.value("LAUCalTagDialog::lastUsedDirectory", QStandardPaths::writableLocation(QStandardPaths::DocumentsLocation)).toString();
+        QString filename = QFileDialog::getOpenFileName(0, QString("Load image from disk"), directory, QString("*.tif *.tiff"));
+        if (filename.isEmpty() == false) {
+            settings.setValue("LAUCalTagDialog::lastUsedDirectory", QFileInfo(filename).absolutePath());
+        } else {
+            return;
+        }
+        image = LAUMemoryObject(filename);
+    }
+
+    this->setLayout(new QVBoxLayout());
+    this->layout()->setContentsMargins(0, 0, 0, 0);
+    widget = new LAUCalTagWidget(image);
+    this->layout()->addWidget(widget);
+
+    QDialogButtonBox *buttonBox = new QDialogButtonBox(QDialogButtonBox::Ok | QDialogButtonBox::Cancel);
+    connect(buttonBox->button(QDialogButtonBox::Ok), SIGNAL(clicked()), this, SLOT(accept()));
+    connect(buttonBox->button(QDialogButtonBox::Cancel), SIGNAL(clicked()), this, SLOT(reject()));
+    this->layout()->addWidget(buttonBox);
+}
+
+/****************************************************************************/
+/****************************************************************************/
+/****************************************************************************/
+LAUCalTagWidget::LAUCalTagWidget(QImage image, QWidget *parent) : QWidget(parent), glWidget(nullptr), widget(nullptr)
 {
     this->setLayout(new QVBoxLayout());
     this->setWindowTitle(QString("LAUCalTag Dialog"));
@@ -57,7 +113,29 @@ LAUCalTagWidget::LAUCalTagWidget(QImage image, QWidget *parent) : QWidget(parent
 /****************************************************************************/
 /****************************************************************************/
 /****************************************************************************/
-LAUCalTagWidget::LAUCalTagWidget(QWidget *parent) : QWidget(parent), glWidget(NULL), widget(NULL)
+LAUCalTagWidget::LAUCalTagWidget(LAUMemoryObject image, QWidget *parent) : QWidget(parent), glWidget(nullptr), widget(nullptr)
+{
+    this->setLayout(new QVBoxLayout());
+    this->setWindowTitle(QString("LAUCalTag Dialog"));
+    this->layout()->setContentsMargins(6, 6, 6, 6);
+    this->layout()->setSpacing(10);
+
+    glWidget = new LAUCalTagGLWidget();
+    glWidget->setMinimumSize(320, 240);
+    glWidget->setSizePolicy(QSizePolicy::Expanding, QSizePolicy::Expanding);
+    this->layout()->addWidget(glWidget);
+
+    widget = glWidget->widget();
+    widget->load();
+    this->layout()->addWidget(widget);
+
+    glWidget->setFrame(image);
+}
+
+/****************************************************************************/
+/****************************************************************************/
+/****************************************************************************/
+LAUCalTagWidget::LAUCalTagWidget(QWidget *parent) : QWidget(parent), glWidget(nullptr), widget(nullptr)
 {
     this->setLayout(new QVBoxLayout());
     this->setWindowTitle(QString("LAUCalTag Dialog"));
@@ -77,7 +155,7 @@ LAUCalTagWidget::LAUCalTagWidget(QWidget *parent) : QWidget(parent), glWidget(NU
 /****************************************************************************/
 /****************************************************************************/
 /****************************************************************************/
-LAUCalTagGLWidget::LAUCalTagGLWidget(QWidget *parent) : LAUVideoGLWidget(parent), calTagGLObject(NULL)
+LAUCalTagGLWidget::LAUCalTagGLWidget(QWidget *parent) : LAUVideoGLWidget(parent), calTagGLObject(nullptr)
 {
     calTagGLObject = new LAUCalTagGLObject();
     connect(calTagGLObject, SIGNAL(update()), this, SLOT(onUpdate()));

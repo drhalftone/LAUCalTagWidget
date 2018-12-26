@@ -30,7 +30,7 @@
 #                                                                               #
 #-------------------------------------------------
 
-CONFIG  += basler
+CONFIG  -= basler
 
 QT      += core gui multimedia widgets multimediawidgets opengl
 TARGET   = LAUWebCalTag

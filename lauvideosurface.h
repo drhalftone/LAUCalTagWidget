@@ -51,7 +51,7 @@ class LAUVideoSurface : public QAbstractVideoSurface
     Q_OBJECT
 
 public:
-    explicit LAUVideoSurface(QObject *parent = NULL) : QAbstractVideoSurface(parent), labelWidget(NULL) { ; }
+    explicit LAUVideoSurface(QObject *parent = nullptr) : QAbstractVideoSurface(parent), labelWidget(nullptr) { ; }
 
     LAUVideoGLWidget *label() const
     {

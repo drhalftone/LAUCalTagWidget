@@ -335,12 +335,12 @@ void LAUCalTagFilterWidget::save()
 LAUCalTagGLObject::LAUCalTagGLObject(QObject *parent) : QObject(parent), isValidFlag(false)
 {
     // INITIALIZE PRIVATE VARIABLES
-    textureLUT = NULL;
+    textureLUT = nullptr;
 
-    frameBufferObjectA = NULL;
-    frameBufferObjectB = NULL;
-    frameBufferObjectC = NULL;
-    frameBufferObjectD = NULL;
+    frameBufferObjectA = nullptr;
+    frameBufferObjectB = nullptr;
+    frameBufferObjectC = nullptr;
+    frameBufferObjectD = nullptr;
 
     quantizationOffset = -0.01f;
     medianFilterRadius = 0;
@@ -526,9 +526,9 @@ void LAUCalTagGLObject::processGL(QOpenGLTexture *videoTexture, QOpenGLFramebuff
 
         // BINARIZE THE INCOMING BUFFER
         binarize(videoTexture, frameBufferObjectA, frameBufferObjectB, frameBufferObjectC);
-        //sobel(frameBufferObjectC, frameBufferObjectB);
-        //cleanUp(frameBufferObjectB, frameBufferObjectA);
-        //dilationErosion(frameBufferObjectA, frameBufferObjectB);
+        sobel(frameBufferObjectC, frameBufferObjectB);
+        cleanUp(frameBufferObjectB, frameBufferObjectA);
+        dilationErosion(frameBufferObjectA, frameBufferObjectB);
 
         // DOWNLOAD THE RESULTING BINARY TEXTURE TO OUR MEMORY BUFFER FOR FURTHER PROCESSING
         glBindTexture(GL_TEXTURE_2D, frameBufferObjectA->texture());
@@ -604,7 +604,7 @@ void LAUCalTagGLObject::processGL(QOpenGLTexture *videoTexture, QOpenGLFramebuff
 /****************************************************************************/
 void LAUCalTagGLObject::testFBO(QOpenGLFramebufferObject *fbo[], int cols, int rows)
 {
-    if ((*fbo) == NULL) {
+    if ((*fbo) == nullptr) {
         // CREATE A FORMAT OBJECT FOR CREATING THE FRAME BUFFER
         QOpenGLFramebufferObjectFormat frameBufferObjectFormat;
         frameBufferObjectFormat.setInternalTextureFormat(GL_RGBA32F);
@@ -836,7 +836,7 @@ void LAUCalTagGLObject::sobel(QOpenGLFramebufferObject *fboA, QOpenGLFramebuffer
                     // TELL OPENGL PROGRAMMABLE PIPELINE HOW TO LOCATE VERTEX POSITION DATA
                     glVertexAttribPointer(programF.attributeLocation("qt_vertex"), 4, GL_FLOAT, GL_FALSE, 4 * sizeof(float), 0);
                     programF.enableAttributeArray("qt_vertex");
-                    glDrawElements(GL_TRIANGLES, 6, GL_UNSIGNED_INT, 0);
+                    glDrawElements(GL_TRIANGLES, 6, GL_UNSIGNED_INT, nullptr);
 
                     // RELEASE THE FRAME BUFFER OBJECT AND ITS ASSOCIATED GLSL PROGRAMS
                     quadIndexBuffer.release();
@@ -855,8 +855,8 @@ void LAUCalTagGLObject::sobel(QOpenGLFramebufferObject *fboA, QOpenGLFramebuffer
 void LAUCalTagGLObject::cleanUp(QOpenGLFramebufferObject *fboA, QOpenGLFramebufferObject *fboB)
 {
     for (int n = 0; n < 4; n++) {
-        QOpenGLFramebufferObject *inFBO = NULL;
-        QOpenGLFramebufferObject *otFBO = NULL;
+        QOpenGLFramebufferObject *inFBO = nullptr;
+        QOpenGLFramebufferObject *otFBO = nullptr;
 
         switch (n) {
             case 0:
@@ -1060,6 +1060,17 @@ cv::Mat LAUCalTagGLObject::detectCalTagGrid(LAUMemoryObject sbObj, LAUMemoryObje
     // FIND QUADRILATERALS IN THE SOBEL EDGE IMAGE
     cv::vector<cv::vector<cv::Point2f>> quads = quadArea(sbImage, minRegion, maxRegion);
 
+#ifdef QT_DEBUG
+    for (unsigned int n = 0; n < quads.size(); n++) {
+        for (unsigned int m = 0; m < quads[n].size(); m++) {
+            if (qIsNaN(quads[n][m].x * quads[n][m].y) == false) {
+                cv::circle(dbImage, quads[n][m], 4, cv::Scalar(255, 255, 0), -1);
+            }
+        }
+    }
+    cv::imshow("Debug Image", dbImage);
+#endif
+
     // GET A GOOD APPROXIMATION OF WHERE THE SADDLE POINTS ARE
     quads = findSaddles(quads);
 
@@ -1074,7 +1085,7 @@ cv::Mat LAUCalTagGLObject::detectCalTagGrid(LAUMemoryObject sbObj, LAUMemoryObje
             }
         }
     }
-    //cv::imshow("", dbImage);
+    cv::imshow("Debug Image", dbImage);
 #endif
 
     // MAKE SURE WE HAVE ENOUGH DETECTED RECTANGLES

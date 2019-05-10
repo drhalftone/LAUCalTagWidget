@@ -54,6 +54,7 @@
 
 #include "lauvideosurface.h"
 #include "laucaltagglwidget.h"
+#include "laucaltagoptglwidget.h"
 
 #ifdef USEBASLERUSBCAMERA
 #include "laubaslerusbcamera.h"

@@ -1,5 +1,5 @@
-#ifndef LAUCALTAGGLOBJECT_H
-#define LAUCALTAGGLOBJECT_H
+#ifndef LAUCALTAGOPTGLOBJECT_H
+#define LAUCALTAGOPTGLOBJECT_H
 
 #ifndef USEHEADLESS
 #include <QLabel>
@@ -31,21 +31,21 @@ namespace cv
     using std::vector;
 }
 
-#define CALTAGPOLYNOMIALORDER 2
+#define CALTAGOPTPOLYNOMIALORDER 2
 
-class LAUCalTagGLObject;
-class LAUCalTagFilterWidget;
+class LAUCalTagOptGLObject;
+class LAUCalTagOptFilterWidget;
 
 #ifndef USEHEADLESS
 /****************************************************************************/
 /****************************************************************************/
 /****************************************************************************/
-class LAUCalTagFilterWidget : public QWidget
+class LAUCalTagOptFilterWidget : public QWidget
 {
     Q_OBJECT
 
 public:
-    LAUCalTagFilterWidget(LAUCalTagGLObject *object, QWidget *parent = nullptr);
+    LAUCalTagOptFilterWidget(LAUCalTagOptGLObject *object, QWidget *parent = nullptr);
 
     void load();
     void save();
@@ -66,13 +66,13 @@ private:
 /****************************************************************************/
 /****************************************************************************/
 /****************************************************************************/
-class LAUCalTagGLObject : public QObject, protected QOpenGLFunctions
+class LAUCalTagOptGLObject : public QObject, protected QOpenGLFunctions
 {
     Q_OBJECT
 
 public:
-    LAUCalTagGLObject(QObject *parent = nullptr);
-    ~LAUCalTagGLObject();
+    LAUCalTagOptGLObject(QObject *parent = nullptr);
+    ~LAUCalTagOptGLObject();
 
     bool isValid() const
     {
@@ -135,9 +135,9 @@ public:
     static cv::Mat findBestLinearMapping(cv::vector<cv::Point2f> fmPoints, cv::vector<cv::Point2f> toPoints);
 
 #ifndef USEHEADLESS
-    LAUCalTagFilterWidget *widget(QWidget *parent = nullptr)
+    LAUCalTagOptFilterWidget *widget(QWidget *parent = nullptr)
     {
-        return (new LAUCalTagFilterWidget(this, parent));
+        return (new LAUCalTagOptFilterWidget(this, parent));
     }
 #endif
 
@@ -199,7 +199,7 @@ private:
     bool isValidFlag;
     int numRows, numCols;
 
-    QList<LAUCalTagGLObject::Pairing> gridPairings; // KEEP TRACK OF THE LAST SET OF GRID POINT PAIRINGS
+    QList<LAUCalTagOptGLObject::Pairing> gridPairings; // KEEP TRACK OF THE LAST SET OF GRID POINT PAIRINGS
 
     float quantizationOffset;
     unsigned int medianFilterRadius;
@@ -229,31 +229,11 @@ private:
     QOpenGLFramebufferObject *frameBufferObjectC, *frameBufferObjectD;
 
     void testFBO(QOpenGLFramebufferObject *fbo[], int cols, int rows);
-
-    void binarize(QOpenGLTexture *videoTexture, QOpenGLFramebufferObject *fboA, QOpenGLFramebufferObject *fboB, QOpenGLFramebufferObject *fboC);
-    void sobel(QOpenGLFramebufferObject *fboA, QOpenGLFramebufferObject *fboB);
-    void cleanUp(QOpenGLFramebufferObject *fboA, QOpenGLFramebufferObject *fboB);
-    void dilationErosion(QOpenGLFramebufferObject *fboA, QOpenGLFramebufferObject *fboB);
-
-#ifdef QT_DEBUG
-    cv::Mat detectCalTagGrid(LAUMemoryObject inObj, LAUMemoryObject sbObj, LAUMemoryObject dbObj, int minBoxes, int minArea, int maxArea, bool flipCalTags, QList<Pairing> &pairings, bool *okay = nullptr);
-#else
-    cv::Mat detectCalTagGrid(LAUMemoryObject inObj, LAUMemoryObject sbObj, int minBoxes, int minArea, int maxArea, bool flipCalTags, QList<Pairing> &pairings, bool *okay = nullptr);
-#endif
-
-    cv::vector<cv::Point2f> sortPoints(cv::vector<cv::Point> points);
-    cv::vector<cv::vector<cv::Point2f>> quadArea(cv::Mat sbImage, int minArea, int maxArea);
-    cv::vector<cv::vector<cv::Point2f>> findSaddles(cv::vector<cv::vector<cv::Point2f> > quads);
-    cv::vector<cv::vector<cv::Point2f>> findPattern(cv::Mat inImage, cv::vector<cv::vector<cv::Point2f>> squares, bool flipCalTags);
-    cv::vector<cv::vector<cv::Point2f>> organizeSquares(cv::vector<cv::vector<cv::Point2f>> squares);
-
-    void removeOutlierPoints(cv::vector<cv::Point2f> &fmPoints, cv::vector<cv::Point2f> &toPoints);
-    bool checkBitCode(int code, cv::Point2f *pt);
-    float length(cv::Point2f point);
-    float angle(cv::Point2f point);
+    void mask(QOpenGLTexture *videoTexture, QOpenGLFramebufferObject *fbo);
+    void gradient(QOpenGLTexture *videoTexture, QOpenGLFramebufferObject *fboA, QOpenGLFramebufferObject *fboB);
 
 signals:
     void update();
 };
 
-#endif // LAUCALTAGGLOBJECT_H
+#endif // LAUCALTAGOPTGLOBJECT_H

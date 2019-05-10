@@ -96,8 +96,8 @@ unix:macx {
 
 unix:!macx {
     CONFIG        += c++11
-    INCLUDEPATH   += /usr/local/opt/opencv/include
-    DEPENDPATH    += /usr/local/opt/opencv/include
+    INCLUDEPATH   += /usr/local/include/opencv4
+    DEPENDPATH    += /usr/local/include/opencv4
     LIBS          += -L/usr/local/lib -lopencv_core -lopencv_objdetect -lopencv_imgproc -lopencv_calib3d -lopencv_highgui -lopencv_ml
 }
 

@@ -272,7 +272,11 @@ bool LAUMemoryObject::save(TIFF *otTiff, int index)
     TIFFSetField(otTiff, TIFFTAG_PLANARCONFIG, PLANARCONFIG_CONTIG);
     TIFFSetField(otTiff, TIFFTAG_SAMPLESPERPIXEL, (unsigned short)colors());
     TIFFSetField(otTiff, TIFFTAG_BITSPERSAMPLE, (unsigned short)(8 * depth()));
-    TIFFSetField(otTiff, TIFFTAG_PHOTOMETRIC, PHOTOMETRIC_MINISBLACK);
+    if (colors() == 3) {
+        TIFFSetField(otTiff, TIFFTAG_PHOTOMETRIC, PHOTOMETRIC_RGB);
+    } else {
+        TIFFSetField(otTiff, TIFFTAG_PHOTOMETRIC, PHOTOMETRIC_MINISBLACK);
+    }
     TIFFSetField(otTiff, TIFFTAG_COMPRESSION, COMPRESSION_LZW);
     TIFFSetField(otTiff, TIFFTAG_XPOSITION, qMax(0.0f, (float)anchorPt.x()));
     TIFFSetField(otTiff, TIFFTAG_YPOSITION, qMax(0.0f, (float)anchorPt.y()));

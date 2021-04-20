@@ -1061,6 +1061,10 @@ cv::Mat LAUCalTagGLObject::detectCalTagGrid(LAUMemoryObject sbObj, LAUMemoryObje
     // FIND QUADRILATERALS IN THE SOBEL EDGE IMAGE
     cv::vector<cv::vector<cv::Point2f>> quads = quadArea(sbImage, minRegion, maxRegion);
 
+    // GET A GOOD APPROXIMATION OF WHERE THE SADDLE POINTS ARE
+    quads = findSaddles(quads);
+    //quads = organizeSquares(quads);
+
 #ifdef QT_DEBUG
     for (unsigned int n = 0; n < quads.size(); n++) {
         for (unsigned int m = 0; m < quads[n].size(); m++) {
@@ -1071,10 +1075,6 @@ cv::Mat LAUCalTagGLObject::detectCalTagGrid(LAUMemoryObject sbObj, LAUMemoryObje
     }
     cv::imshow("Debug Image", dbImage);
 #endif
-
-    // GET A GOOD APPROXIMATION OF WHERE THE SADDLE POINTS ARE
-    quads = findSaddles(quads);
-    //quads = organizeSquares(quads);
 
     // DECODE THE CALTAG SQUARES
     cv::vector<cv::vector<cv::Point2f>> coordinates = findPattern(inImage, quads, flipCalTags);
@@ -1169,7 +1169,7 @@ cv::vector<cv::vector<cv::Point2f>> LAUCalTagGLObject::quadArea(cv::Mat sbImage,
     // FOR EACH CONTOUR, APPROXIMATE IT WITH A POLYGON
     for (unsigned int i = 0; i < contours.size(); ++i) {
         contoursPoly.push_back(contours[i]);
-        cv::approxPolyDP(contours[i], contoursPoly[i], 10.0, true);
+        cv::approxPolyDP(contours[i], contoursPoly[i], 5.0, true);
         if (contoursPoly[i].size() == 4 && cv::isContourConvex(contoursPoly[i])) {
             int area = cv::contourArea(contoursPoly[i]);
             if (area > minArea && area < maxArea) {
@@ -1190,7 +1190,7 @@ cv::vector<cv::vector<cv::Point2f>> LAUCalTagGLObject::findSaddles(cv::vector<cv
     for (unsigned int m = 0; m < 4 * quads.size(); m++) {
         cv::Point2f meanPt(0.0f, 0.0f);
         for (unsigned int n = m; n < 4 * quads.size(); n++) {
-            if (LAUCalTagGLObject::length(quads[m / 4][m % 4] - quads[n / 4][n % 4]) < 5.0f) {
+            if (LAUCalTagGLObject::length(quads[m / 4][m % 4] - quads[n / 4][n % 4]) < 20.0f) {
                 meanPt = meanPt + quads[n / 4][n % 4];
                 indices << n;
             }
@@ -1606,7 +1606,26 @@ cv::vector<cv::vector<cv::Point2f>> LAUCalTagGLObject::organizeSquares(cv::vecto
 /****************************************************************************/
 bool LAUCalTagGLObject::checkBitCode(int code, cv::Point2f *pt)
 {
-    // DEFINE LOOK-UP TABLE
+    qDebug() << "Code:" << code;
+#define USE4x4CALTAGTARGET
+#ifdef USE4x4CALTAGTARGET
+    static const int realBitCodes[4][4] = {
+        {55832,	36200,	48172,	36446},
+        {52024,	40282,	44062,	40830},
+        {48648,	35962,	48446,	53085},
+        {44840,	56409,	60701,	56957}
+    };
+
+    for (int i = 0; i < 4; i++) {
+        for (int j = 3; j >= 0; j--) {
+            if (code == realBitCodes[i][j]) {
+                *pt = cv::Point2f((float)(i - 7), (float)(j - 7));
+                return (true);
+            }
+        }
+    }
+#else
+    //#define USESQUARECALTAGTARGET
 #ifdef USESQUARECALTAGTARGET
     static const int realBitCodes[15][15] = {
         {8578, 12720, 56439, 52567, 56677, 52293, 40038, 36166, 40308, 63606, 59734, 63844, 59460, 47207, 43335},
@@ -1629,7 +1648,7 @@ bool LAUCalTagGLObject::checkBitCode(int code, cv::Point2f *pt)
     for (int i = 0; i < 15; i++) {
         for (int j = 14; j >= 0; j--) {
             if (code == realBitCodes[i][j]) {
-                *pt = cv::Point2f((float)(j - 7), (float)(i - 7));
+                *pt = cv::Point2f((float)(i - 7), (float)(j - 7));
                 return (true);
             }
         }
@@ -1663,13 +1682,11 @@ bool LAUCalTagGLObject::checkBitCode(int code, cv::Point2f *pt)
             if (code == realBitCodes[i][j]) {
                 *pt = cv::Point2f((float)(j - 7), (float)(i - 7));
                 return (true);
-            } else if (code > realBitCodes[i][j]) {
-                return (false);
             }
         }
     }
 #endif
-    return (false);
+#endif
 }
 
 /******************************************************************************/

@@ -520,6 +520,7 @@ void LAUCalTagGLObject::processGL(QOpenGLTexture *videoTexture, QOpenGLFramebuff
         if (memoryObject[0].width() != (unsigned int)videoTexture->width() || memoryObject[0].height() != (unsigned int)videoTexture->height()) {
             memoryObject[0] = LAUMemoryObject(videoTexture->width(), videoTexture->height(), 1, sizeof(unsigned char));
             memoryObject[1] = LAUMemoryObject(videoTexture->width(), videoTexture->height(), 1, sizeof(unsigned char));
+            memoryObject[2] = LAUMemoryObject(videoTexture->width(), videoTexture->height(), 1, sizeof(unsigned char));
 #ifdef QT_DEBUG
             debugObject = LAUMemoryObject(videoTexture->width(), videoTexture->height(), 3, sizeof(unsigned char));
 #endif
@@ -542,13 +543,19 @@ void LAUCalTagGLObject::processGL(QOpenGLTexture *videoTexture, QOpenGLFramebuff
         glGetTexImage(GL_TEXTURE_2D, 0, GL_RED, GL_UNSIGNED_BYTE, (unsigned char *)memoryObject[1].constPointer());
         //memoryObject[1].save(QString("C:/memoryB.tif"));
 
+        // DOWNLOAD THE ORIGINAL FRAME TEXTURE TO OUR MEMORY BUFFER FOR FURTHER PROCESSING
+        videoTexture->bind();
+        glPixelStorei(GL_PACK_ALIGNMENT, 1);
+        glGetTexImage(GL_TEXTURE_2D, 0, GL_RED, GL_UNSIGNED_BYTE, (unsigned char *)memoryObject[2].constPointer());
+        //memoryObject[2].save(QString("C:/memoryC.tif"));
+
         // LOOK FOR CALTAGS AND GET THE CR TO XYZ TRANSFORM
         bool okay = false;
 #ifdef QT_DEBUG
         glBindTexture(GL_TEXTURE_2D, frameBufferObjectA->texture());
         glPixelStorei(GL_PACK_ALIGNMENT, 1);
         glGetTexImage(GL_TEXTURE_2D, 0, GL_RGB, GL_UNSIGNED_BYTE, (unsigned char *)debugObject.constPointer());
-        cv::Mat transform = detectCalTagGrid(memoryObject[0], memoryObject[1], debugObject, minBoxCount, minRegionArea, maxRegionArea, flipCalTagsFlag, gridPairings, &okay);
+        cv::Mat transform = detectCalTagGrid(memoryObject[2], memoryObject[0], memoryObject[1], debugObject, minBoxCount, minRegionArea, maxRegionArea, flipCalTagsFlag, gridPairings, &okay);
 #else
         cv::Mat transform = detectCalTagGrid(memoryObject[0], memoryObject[1], minBoxCount, minRegionArea, maxRegionArea, flipCalTagsFlag, gridPairings, &okay);
 #endif
@@ -1038,9 +1045,9 @@ void LAUCalTagGLObject::dilationErosion(QOpenGLFramebufferObject *fboA, QOpenGLF
 /***************************************************************************/
 /***************************************************************************/
 #ifdef QT_DEBUG
-cv::Mat LAUCalTagGLObject::detectCalTagGrid(LAUMemoryObject sbObj, LAUMemoryObject inObj, LAUMemoryObject dbObj, int minBoxes, int minRegion, int maxRegion, bool flipCalTags, QList<Pairing> &pairings, bool *okay)
+cv::Mat LAUCalTagGLObject::detectCalTagGrid(LAUMemoryObject rwObj, LAUMemoryObject sbObj, LAUMemoryObject inObj, LAUMemoryObject dbObj, int minBoxes, int minRegion, int maxRegion, bool flipCalTags, QList<Pairing> &pairings, bool *okay)
 #else
-cv::Mat LAUCalTagGLObject::detectCalTagGrid(LAUMemoryObject sbObj, LAUMemoryObject inObj, int minBoxes, int minRegion, int maxRegion, bool flipCalTags, QList<Pairing> &pairings, bool *okay)
+cv::Mat LAUCalTagGLObject::detectCalTagGrid(LAUMemoryObject rwObj, LAUMemoryObject sbObj, LAUMemoryObject inObj, int minBoxes, int minRegion, int maxRegion, bool flipCalTags, QList<Pairing> &pairings, bool *okay)
 #endif
 {
     qDebug() << minBoxes << minRegion << maxRegion << flipCalTags;
@@ -1052,8 +1059,9 @@ cv::Mat LAUCalTagGLObject::detectCalTagGrid(LAUMemoryObject sbObj, LAUMemoryObje
     cv::Mat localTransform(1, 30, CV_64F);
 
     // CREATE CV::MAT WRAPPER AROUND OUR MEMORY OBJECT
-    cv::Mat sbImage(sbObj.height(), sbObj.width(), CV_8UC1, (unsigned char *)sbObj.constPointer(), sbObj.step());
+    cv::Mat rwImage(rwObj.height(), rwObj.width(), CV_8UC1, (unsigned char *)rwObj.constPointer(), rwObj.step());
     cv::Mat inImage(inObj.height(), inObj.width(), CV_8UC1, (unsigned char *)inObj.constPointer(), inObj.step());
+    cv::Mat sbImage(sbObj.height(), sbObj.width(), CV_8UC1, (unsigned char *)sbObj.constPointer(), sbObj.step());
 #ifdef QT_DEBUG
     cv::Mat dbImage(dbObj.height(), dbObj.width(), CV_8UC3, (unsigned char *)dbObj.constPointer(), dbObj.step());
 #endif
@@ -1062,7 +1070,7 @@ cv::Mat LAUCalTagGLObject::detectCalTagGrid(LAUMemoryObject sbObj, LAUMemoryObje
     cv::vector<cv::vector<cv::Point2f>> quads = quadArea(sbImage, minRegion, maxRegion);
 
     // GET A GOOD APPROXIMATION OF WHERE THE SADDLE POINTS ARE
-    quads = findSaddles(quads);
+    quads = findSaddles(rwImage, quads);
     //quads = organizeSquares(quads);
 
 #ifdef QT_DEBUG
@@ -1184,8 +1192,13 @@ cv::vector<cv::vector<cv::Point2f>> LAUCalTagGLObject::quadArea(cv::Mat sbImage,
 /***************************************************************************/
 /***************************************************************************/
 /***************************************************************************/
-cv::vector<cv::vector<cv::Point2f>> LAUCalTagGLObject::findSaddles(cv::vector<cv::vector<cv::Point2f>> quads)
+cv::vector<cv::vector<cv::Point2f>> LAUCalTagGLObject::findSaddles(cv::Mat inImage, cv::vector<cv::vector<cv::Point2f>> quads)
 {
+    for (unsigned int n = 0; n < quads.size(); n++) {
+        cv::TermCriteria criteria = cv::TermCriteria(cv::TermCriteria::EPS + cv::TermCriteria::COUNT, 400, 0.0001);
+        cv::cornerSubPix(inImage, quads[n], cv::Size(9, 9), cv::Size(3, 3), criteria);
+    }
+
     QList<unsigned int> indices;
     for (unsigned int m = 0; m < 4 * quads.size(); m++) {
         cv::Point2f meanPt(0.0f, 0.0f);

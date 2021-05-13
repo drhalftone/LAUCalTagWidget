@@ -212,7 +212,7 @@ private:
     int minBoxCount;       // MINIMUM BOX AREA
     bool flipCalTagsFlag;  // IS THE TARGET BACKLIT?
 
-    LAUMemoryObject memoryObject[2];
+    LAUMemoryObject memoryObject[3];
 #ifdef QT_DEBUG
     LAUMemoryObject debugObject;
 #endif
@@ -237,14 +237,14 @@ private:
     void dilationErosion(QOpenGLFramebufferObject *fboA, QOpenGLFramebufferObject *fboB);
 
 #ifdef QT_DEBUG
-    cv::Mat detectCalTagGrid(LAUMemoryObject inObj, LAUMemoryObject sbObj, LAUMemoryObject dbObj, int minBoxes, int minArea, int maxArea, bool flipCalTags, QList<Pairing> &pairings, bool *okay = nullptr);
+    cv::Mat detectCalTagGrid(LAUMemoryObject rwObj, LAUMemoryObject inObj, LAUMemoryObject sbObj, LAUMemoryObject dbObj, int minBoxes, int minArea, int maxArea, bool flipCalTags, QList<Pairing> &pairings, bool *okay = nullptr);
 #else
-    cv::Mat detectCalTagGrid(LAUMemoryObject inObj, LAUMemoryObject sbObj, int minBoxes, int minArea, int maxArea, bool flipCalTags, QList<Pairing> &pairings, bool *okay = nullptr);
+    cv::Mat detectCalTagGrid(LAUMemoryObject rwObj, LAUMemoryObject inObj, LAUMemoryObject sbObj, int minBoxes, int minArea, int maxArea, bool flipCalTags, QList<Pairing> &pairings, bool *okay = nullptr);
 #endif
 
     cv::vector<cv::Point2f> sortPoints(cv::vector<cv::Point> points);
     cv::vector<cv::vector<cv::Point2f>> quadArea(cv::Mat sbImage, int minArea, int maxArea);
-    cv::vector<cv::vector<cv::Point2f>> findSaddles(cv::vector<cv::vector<cv::Point2f> > quads);
+    cv::vector<cv::vector<cv::Point2f>> findSaddles(cv::Mat inImage, cv::vector<cv::vector<cv::Point2f> > quads);
     cv::vector<cv::vector<cv::Point2f>> findPattern(cv::Mat inImage, cv::vector<cv::vector<cv::Point2f>> squares, bool flipCalTags);
     cv::vector<cv::vector<cv::Point2f>> organizeSquares(cv::vector<cv::vector<cv::Point2f>> squares);
 

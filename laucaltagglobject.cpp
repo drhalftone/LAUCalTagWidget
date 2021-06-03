@@ -1620,7 +1620,7 @@ cv::vector<cv::vector<cv::Point2f>> LAUCalTagGLObject::organizeSquares(cv::vecto
 bool LAUCalTagGLObject::checkBitCode(int code, cv::Point2f *pt)
 {
     qDebug() << "Code:" << code;
-#define USE4x4CALTAGTARGET
+    //#define USE4x4CALTAGTARGET
 #ifdef USE4x4CALTAGTARGET
     static const int realBitCodes[4][4] = {
         {55832,	36200,	48172,	36446},

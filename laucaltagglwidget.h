@@ -104,6 +104,9 @@ public:
     LAUCalTagWidget(QWidget *parent = nullptr);
     ~LAUCalTagWidget()
     {
+        if (widget) {
+            widget->save();
+        }
         qDebug() << "LAUCalTagWidget::~LAUCalTagWidget()";
     }
 

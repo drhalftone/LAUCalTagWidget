@@ -47,6 +47,7 @@ LAUCalTagDialog::LAUCalTagDialog(QImage image, QWidget *parent) : QDialog(parent
             return;
         }
         image = QImage(filename);
+        this->setWindowTitle(QFileInfo(filename).baseName());
     }
 
     this->setLayout(new QVBoxLayout());

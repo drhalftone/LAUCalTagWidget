@@ -67,7 +67,9 @@ int main(int argc, char *argv[])
 #else
     //LAUCalTagOptDialog w((LAUMemoryObject(QString())));
     LAUCalTagDialog w((QImage()));
-    return w.exec();
+    if (w.isValid()) {
+        return w.exec();
+    }
 #endif
     return (0);
 }

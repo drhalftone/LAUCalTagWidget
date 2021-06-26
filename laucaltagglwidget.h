@@ -195,6 +195,14 @@ public:
     LAUCalTagDialog(QImage image, QWidget *parent = nullptr);
     LAUCalTagDialog(LAUMemoryObject image, QWidget *parent = nullptr);
 
+    bool isValid()
+    {
+        if (widget) {
+            return (widget->isValid());
+        }
+        return (false);
+    }
+
 protected:
     void accept()
     {

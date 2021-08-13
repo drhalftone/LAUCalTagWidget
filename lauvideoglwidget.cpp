@@ -163,6 +163,85 @@ void LAUVideoGLWidget::setFrame(const QVideoFrame &frame)
 /****************************************************************************/
 /****************************************************************************/
 /****************************************************************************/
+void LAUVideoGLWidget::setFrame(LAUMemoryObject object)
+{
+    if (object.isNull() == false) {
+        if (wasInitialized()) {
+            // REPORT FRAME RATE TO THE CONSOLE
+            counter++;
+            if (counter >= 30) {
+                qDebug() << QString("%1 fps").arg(1000.0 * (float)counter / (float)time.elapsed());
+                time.restart();
+                counter = 0;
+            }
+
+            makeCurrent();
+
+            // SEE IF WE NEED A NEW TEXTURE TO HOLD THE INCOMING VIDEO FRAME
+            if (!videoTexture || videoTexture->width() != object.width() || videoTexture->height() != object.height()) {
+                if (videoTexture) {
+                    delete videoTexture;
+                }
+
+                // CREATE THE GPU SIDE TEXTURE BUFFER TO HOLD THE INCOMING VIDEO
+                videoTexture = new QOpenGLTexture(QOpenGLTexture::Target2D);
+                videoTexture->setSize(object.width(), object.height());
+                videoTexture->setFormat(QOpenGLTexture::RGBA32F);
+                videoTexture->setWrapMode(QOpenGLTexture::ClampToBorder);
+                videoTexture->setMinificationFilter(QOpenGLTexture::Nearest);
+                videoTexture->setMagnificationFilter(QOpenGLTexture::Nearest);
+                videoTexture->allocateStorage();
+
+                qDebug() << videoTexture->width() << videoTexture->height();
+            }
+
+            if (object.colors() == 1) {
+                if (object.depth() == sizeof(unsigned char)) {
+                    videoTexture->setData(QOpenGLTexture::Red, QOpenGLTexture::UInt8, (const void *)object.constPointer());
+                } else if (object.depth() == sizeof(unsigned short)) {
+                    videoTexture->setData(QOpenGLTexture::Red, QOpenGLTexture::UInt16, (const void *)object.constPointer());
+                } else if (object.depth() == sizeof(float)) {
+                    videoTexture->setData(QOpenGLTexture::Red, QOpenGLTexture::Float32, (const void *)object.constPointer());
+                }
+            } else if (object.colors() == 3) {
+                if (object.depth() == sizeof(unsigned char)) {
+                    videoTexture->setData(QOpenGLTexture::RGB, QOpenGLTexture::UInt8, (const void *)object.constPointer());
+                } else if (object.depth() == sizeof(unsigned short)) {
+                    videoTexture->setData(QOpenGLTexture::RGB, QOpenGLTexture::UInt16, (const void *)object.constPointer());
+                } else if (object.depth() == sizeof(float)) {
+                    videoTexture->setData(QOpenGLTexture::RGB, QOpenGLTexture::Float32, (const void *)object.constPointer());
+                }
+            } else if (object.colors() == 4) {
+                if (object.depth() == sizeof(unsigned char)) {
+                    videoTexture->setData(QOpenGLTexture::RGBA, QOpenGLTexture::UInt8, (const void *)object.constPointer());
+                } else if (object.depth() == sizeof(unsigned short)) {
+                    videoTexture->setData(QOpenGLTexture::RGBA, QOpenGLTexture::UInt16, (const void *)object.constPointer());
+                } else if (object.depth() == sizeof(float)) {
+                    videoTexture->setData(QOpenGLTexture::RGBA, QOpenGLTexture::Float32, (const void *)object.constPointer());
+                }
+            }
+
+            // PROCESS THE TEXTURE
+            process();
+
+            // COPY THE FRAME BACK FROM THE GPU TO THE CPU
+            //glBindTexture(GL_TEXTURE_2D, videoTexture->textureId());
+            //glPixelStorei(GL_PACK_ALIGNMENT, 1);
+            //glGetTexImage(GL_TEXTURE_2D, 0, GL_RED, GL_UNSIGNED_SHORT, (unsigned char *)object.constPointer());
+            //object.save("/tmp/basler.tif");
+
+            // UPDATE THE USER DISPLAY
+            update();
+        } else {
+            localMemoryObject = object;
+        }
+    }
+    emit emitFrame(object);
+}
+
+/****************************************************************************/
+/****************************************************************************/
+/****************************************************************************/
 void LAUVideoGLWidget::setFrame(QImage frame)
 {
     if (frame.isNull() == false) {
@@ -289,6 +368,8 @@ void LAUVideoGLWidget::initializeGL()
         setFrame(localVideoFrame);
     } else if (localImage.isNull() == false) {
         setFrame(localImage);
+    } else if (localMemoryObject.isNull() == false) {
+        setFrame(localMemoryObject);
     }
 }
 
@@ -326,6 +407,7 @@ void LAUVideoGLWidget::paint()
                     glActiveTexture(GL_TEXTURE0);
                     videoTexture->bind();
                     program.setUniformValue("qt_texture", 0);
+                    program.setUniformValue("qt_maxPixelValue", 64.0f);
 
                     // TELL OPENGL PROGRAMMABLE PIPELINE HOW TO LOCATE VERTEX POSITION DATA
                     program.setAttributeBuffer("qt_vertex", GL_FLOAT, 0, 4, 4 * sizeof(float));

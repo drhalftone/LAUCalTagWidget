@@ -23,7 +23,7 @@ void main()
     vec4 sobelX = (pixelC + 3 * pixelF + pixelI) - (pixelA + 3 * pixelD + pixelG);
     vec4 sobelY = (pixelG + 3 * pixelH + pixelI) - (pixelA + 3 * pixelB + pixelC);
 
-    qt_fragColor = 2 * abs(sobelX) + 2 * abs(sobelY);
+    qt_fragColor = sqrt(sobelX*sobelX + sobelY*sobelY);
     qt_fragColor.a = 1.0;
 
     return;

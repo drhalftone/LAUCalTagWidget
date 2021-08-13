@@ -63,7 +63,7 @@ LAUMemoryObjectData::LAUMemoryObjectData()
     stepBytes = 0;
     frameBytes = 0;
 
-    buffer = NULL;
+    buffer = nullptr;
     numBytesTotal = 0;
 }
 
@@ -78,7 +78,7 @@ LAUMemoryObjectData::LAUMemoryObjectData(unsigned int cols, unsigned int rows, u
     numByts = byts;
     numFrms = frms;
 
-    buffer = NULL;
+    buffer = nullptr;
     stepBytes = 0;
     frameBytes = 0;
     numBytesTotal = 0;
@@ -97,7 +97,7 @@ LAUMemoryObjectData::LAUMemoryObjectData(unsigned long long bytes)
     numByts = 1;
     numFrms = 1;
 
-    buffer = NULL;
+    buffer = nullptr;
     stepBytes = 0;
     frameBytes = 0;
     numBytesTotal = 0;
@@ -118,7 +118,7 @@ LAUMemoryObjectData::LAUMemoryObjectData(const LAUMemoryObjectData &other)
     numFrms = other.numFrms;
 
     // SET THESE VARIABLES TO ZERO AND LET THEM BE MODIFIED IN THE ALLOCATION METHOD
-    buffer = NULL;
+    buffer = nullptr;
     stepBytes = 0;
     frameBytes = 0;
     numBytesTotal = 0;
@@ -134,7 +134,7 @@ LAUMemoryObjectData::LAUMemoryObjectData(const LAUMemoryObjectData &other)
 /****************************************************************************/
 LAUMemoryObjectData::~LAUMemoryObjectData()
 {
-    if (buffer != NULL) {
+    if (buffer != nullptr) {
         instanceCounter = instanceCounter - 1;
         qDebug() << QString("LAUMemoryObjectData::~LAUMemoryObjectData() %1").arg(instanceCounter) << numRows << numCols << numChns << numByts << numBytesTotal;
         _mm_free(buffer);
@@ -160,7 +160,7 @@ void LAUMemoryObjectData::allocateBuffer()
         stepBytes  = numCols * numChns * numByts;
         frameBytes = numCols * numChns * numByts * numRows;
         buffer     = _mm_malloc(numBytesTotal + 128, 16);
-        if (buffer == NULL) {
+        if (buffer == nullptr) {
             qDebug() << QString("LAUVideoBufferData::allocateBuffer() MAJOR ERROR DID NOT ALLOCATE SPACE!!!");
             qDebug() << QString("LAUVideoBufferData::allocateBuffer() MAJOR ERROR DID NOT ALLOCATE SPACE!!!");
             qDebug() << QString("LAUVideoBufferData::allocateBuffer() MAJOR ERROR DID NOT ALLOCATE SPACE!!!");
@@ -176,8 +176,12 @@ LAUMemoryObject::LAUMemoryObject(QString filename) : data(new LAUMemoryObjectDat
 {
     // GET A FILE TO OPEN FROM THE USER IF NOT ALREADY PROVIDED ONE
     if (filename.isNull()) {
-        filename = QFileDialog::getOpenFileName(0, QString("Load scan from disk (*.tif)"), QString(), QString("*.tif;*.tiff"));
-        if (filename.isNull()) {
+        QSettings settings;
+        QString directory = settings.value("LAUCalTagDialog::lastUsedDirectory", QStandardPaths::writableLocation(QStandardPaths::DocumentsLocation)).toString();
+        filename = QFileDialog::getOpenFileName(nullptr, QString("Load image from disk"), directory, QString("*.tif *.tiff"));
+        if (filename.isEmpty() == false) {
+            settings.setValue("LAUCalTagDialog::lastUsedDirectory", QFileInfo(filename).absolutePath());
+        } else {
             return;
         }
     }
@@ -221,9 +225,19 @@ bool LAUMemoryObject::save(QString filename)
             counter++;
         } while (QFile::exists(filename));
 
-        filename = QFileDialog::getSaveFileName(0, QString("Save image to disk (*.tif)"), filename, QString("*.tif;*.tiff"));
+        filename = QFileDialog::getSaveFileName(nullptr, QString("Save image to disk (*.tif)"), filename, QString("*.tif;*.tiff"));
         if (!filename.isNull()) {
             settings.setValue(QString("LAUMemoryObject::lastUsedDirectory"), QFileInfo(filename).absolutePath());
+            if (filename.toLower().endsWith(QString(".bmp"))) {
+                filename.chop(4);
+            } else if (filename.toLower().endsWith(QString(".jpg"))) {
+                filename.chop(4);
+            } else if (filename.toLower().endsWith(QString(".jpeg"))) {
+                filename.chop(5);
+            } else if (filename.toLower().endsWith(QString(".png"))) {
+                filename.chop(4);
+            }
+
             if (!filename.toLower().endsWith(QString(".tiff"))) {
                 if (!filename.toLower().endsWith(QString(".tif"))) {
                     filename = QString("%1.tif").arg(filename);
@@ -268,7 +282,11 @@ bool LAUMemoryObject::save(TIFF *otTiff, int index)
     TIFFSetField(otTiff, TIFFTAG_PLANARCONFIG, PLANARCONFIG_CONTIG);
     TIFFSetField(otTiff, TIFFTAG_SAMPLESPERPIXEL, (unsigned short)colors());
     TIFFSetField(otTiff, TIFFTAG_BITSPERSAMPLE, (unsigned short)(8 * depth()));
-    TIFFSetField(otTiff, TIFFTAG_PHOTOMETRIC, PHOTOMETRIC_MINISBLACK);
+    if (colors() == 3) {
+        TIFFSetField(otTiff, TIFFTAG_PHOTOMETRIC, PHOTOMETRIC_RGB);
+    } else {
+        TIFFSetField(otTiff, TIFFTAG_PHOTOMETRIC, PHOTOMETRIC_MINISBLACK);
+    }
     TIFFSetField(otTiff, TIFFTAG_COMPRESSION, COMPRESSION_LZW);
     TIFFSetField(otTiff, TIFFTAG_XPOSITION, qMax(0.0f, (float)anchorPt.x()));
     TIFFSetField(otTiff, TIFFTAG_YPOSITION, qMax(0.0f, (float)anchorPt.y()));

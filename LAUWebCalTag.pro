@@ -30,6 +30,8 @@
 #                                                                               #
 #-------------------------------------------------
 
+CONFIG  -= basler
+
 QT      += core gui multimedia widgets multimediawidgets opengl
 TARGET   = LAUWebCalTag
 TEMPLATE = app
@@ -52,7 +54,9 @@ SOURCES += \
         lauvideosurface.cpp \
         lauvideoglwidget.cpp \
         laucaltagglwidget.cpp \
-        laucaltagglobject.cpp
+        laucaltagglobject.cpp \
+        laucaltagoptglwidget.cpp \
+        laucaltagoptglobject.cpp
 
 HEADERS += \
         laumemoryobject.h \
@@ -60,25 +64,40 @@ HEADERS += \
         lauvideosurface.h \
         lauvideoglwidget.h \
         laucaltagglwidget.h \
-        laucaltagglobject.h
+        laucaltagglobject.h \
+        laucaltagoptglwidget.h \
+        laucaltagoptglobject.h
 
 RESOURCES += lauwebcameracapture.qrc
 
 CONFIG(release, debug|release):DEFINES += QT_NO_DEBUG_OUTPUT
 
+basler {
+    DEFINES += USEBASLERUSBCAMERA
+    HEADERS += laubaslerusbcamera.h
+    SOURCES += laubaslerusbcamera.cpp
+}
+
 unix:macx {
     CONFIG        += c++11
-    INCLUDEPATH   += /usr/local/opt/opencv@3/include /usr/local/include
-    DEPENDPATH    += /usr/local/opt/opencv@3/include /usr/local/include
-    LIBS          += -L/usr/local/opt/opencv@3/lib -lopencv_core -lopencv_objdetect -lopencv_imgcodecs \
+    INCLUDEPATH   += /usr/local/opt/opencv/include/opencv4 /usr/local/include/TIFF
+    DEPENDPATH    += /usr/local/opt/opencv/include/opencv4 /usr/local/include/TIFF
+    LIBS          += -L/usr/local/opt/opencv/lib -lopencv_core -lopencv_objdetect -lopencv_imgcodecs \
                      -lopencv_imgproc -lopencv_calib3d -lopencv_highgui -lopencv_ml \
                      /usr/local/lib/libtiff.5.dylib
+    basler{
+        INCLUDEPATH += /Library/Frameworks/pylon.framework/Versions/A/Headers \
+                       /Library/Frameworks/pylon.framework/Versions/A/Headers/GenICam
+        DEPENDPATH  += /Library/Frameworks/pylon.framework/Versions/A/Headers \
+                       /Library/Frameworks/pylon.framework/Versions/A/Headers/GenICam
+        LIBS        += /Library/Frameworks/pylon.framework/Versions/A/pylon
+    }
 }
 
 unix:!macx {
     CONFIG        += c++11
-    INCLUDEPATH   += /usr/local/include/opencv4
-    DEPENDPATH    += /usr/local/include/opencv4
+    INCLUDEPATH   += /usr/local/include/opencv4 /usr/local/include
+    DEPENDPATH    += /usr/local/include/opencv4 /usr/local/include
     LIBS          += -L/usr/local/lib -lopencv_core -lopencv_objdetect -lopencv_imgproc -lopencv_calib3d -lopencv_highgui -lopencv_ml
 }
 

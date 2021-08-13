@@ -161,12 +161,12 @@ public:
 
     inline bool isNull() const
     {
-        return (data->buffer == NULL);
+        return (data->buffer == nullptr);
     }
 
     inline bool isValid() const
     {
-        return (data->buffer != NULL);
+        return (data->buffer != nullptr);
     }
 
     inline unsigned long long length() const

@@ -35,7 +35,7 @@
 /****************************************************************************/
 /****************************************************************************/
 /****************************************************************************/
-LAUWebCameraWidget::LAUWebCameraWidget(QCamera::CaptureMode capture, QWidget *parent) : QWidget(parent), mode(capture), widget(NULL), thread(NULL), camera(NULL), imageCapture(NULL), surface(NULL)
+LAUWebCameraWidget::LAUWebCameraWidget(QCamera::CaptureMode capture, QWidget *parent) : QWidget(parent), mode(capture), widget(nullptr), thread(nullptr), camera(nullptr), imageCapture(nullptr), surface(nullptr)
 {
     this->setLayout(new QVBoxLayout());
     this->setWindowTitle(QString("LAUCalTag Video Widget"));
@@ -45,10 +45,13 @@ LAUWebCameraWidget::LAUWebCameraWidget(QCamera::CaptureMode capture, QWidget *pa
     label->setSizePolicy(QSizePolicy::Expanding, QSizePolicy::Expanding);
     this->layout()->addWidget(label);
 
-    LAUCalTagFilterWidget *widget = ((LAUCalTagGLWidget *)label)->widget();
+    widget = ((LAUCalTagGLWidget *)label)->widget();
     widget->setSizePolicy(QSizePolicy::Expanding, QSizePolicy::Minimum);
     this->layout()->addWidget(widget);
 
+#ifdef USEBASLERUSBCAMERA
+    camera = new LAUBaslerUSBCamera();
+#else
     QStringList strings;
     QList<QCameraInfo> cameras = QCameraInfo::availableCameras();
     for (int n = 0; n < cameras.count(); n++) {
@@ -65,8 +68,14 @@ LAUWebCameraWidget::LAUWebCameraWidget(QCamera::CaptureMode capture, QWidget *pa
     } else if (strings.count() == 1) {
         camera = new QCamera(cameras.first());
     }
+#endif
 
     if (camera) {
+#ifdef USEBASLERUSBCAMERA
+        connect(this, SIGNAL(emitFrame(LAUMemoryObject)), camera, SLOT(setFrame(LAUMemoryObject)), Qt::QueuedConnection);
+        connect(camera, SIGNAL(emitFrame(LAUMemoryObject)), label, SLOT(setFrame(LAUMemoryObject)), Qt::QueuedConnection);
+        connect(label, SIGNAL(emitFrame(LAUMemoryObject)), this, SLOT(setFrame(LAUMemoryObject)), Qt::QueuedConnection);
+#else
         surface = new LAUVideoSurface();
         surface->setLabel(label);
 #ifdef Q_OS_MAC
@@ -85,7 +94,7 @@ LAUWebCameraWidget::LAUWebCameraWidget(QCamera::CaptureMode capture, QWidget *pa
             imageCapture->setCaptureDestination(QCameraImageCapture::CaptureToBuffer);
             connect(imageCapture, SIGNAL(imageCaptured(int, QImage)), this, SLOT(onImageAvailable(int, QImage)));
         }
-
+#endif
         // CREATE A NEW THREAD TO HOST THE CAMERA
         thread = new QThread();
         camera->moveToThread(thread);
@@ -108,6 +117,11 @@ LAUWebCameraWidget::~LAUWebCameraWidget()
         delete thread;
     }
 
+#ifdef USEBASLERUSBCAMERA
+    if (camera) {
+        delete camera;
+    }
+#else
     if (surface) {
         surface->stop();
         delete surface;
@@ -117,7 +131,7 @@ LAUWebCameraWidget::~LAUWebCameraWidget()
         camera->stop();
         delete camera;
     }
-
+#endif
     if (widget) {
         widget->save();
     }
@@ -128,6 +142,7 @@ LAUWebCameraWidget::~LAUWebCameraWidget()
 /****************************************************************************/
 void LAUWebCameraWidget::onCapture()
 {
+#ifndef USEBASLERUSBCAMERA
     if (imageCapture) {
         // WAIT HERE UNTIL CAMERA IS READY TO CAPTURE
         while (imageCapture->isReadyForCapture() == false) {
@@ -138,6 +153,7 @@ void LAUWebCameraWidget::onCapture()
             qDebug() << imageCapture->errorString();
         }
     }
+#endif
 }
 
 /****************************************************************************/

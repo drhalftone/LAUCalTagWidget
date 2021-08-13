@@ -37,18 +37,27 @@
 
 int main(int argc, char *argv[])
 {
-    QApplication a(argc, argv);
-    a.setOrganizationName(QString("Lau Consulting Inc"));
-    a.setOrganizationDomain(QString("drhalftone.com"));
-    a.setApplicationName(QString("LAURealSense"));
-
     QSurfaceFormat format;
     format.setDepthBufferSize(10);
-    format.setMajorVersion(4);
-    format.setMinorVersion(1);
+    format.setMajorVersion(3);
+    format.setMinorVersion(3);
     format.setProfile(QSurfaceFormat::CoreProfile);
     format.setRenderableType(QSurfaceFormat::OpenGL);
     QSurfaceFormat::setDefaultFormat(format);
+
+#ifndef Q_OS_LINUX
+    QApplication::setAttribute(Qt::AA_EnableHighDpiScaling);
+#endif
+    QApplication::setAttribute(Qt::AA_UseDesktopOpenGL);
+    QApplication::setAttribute(Qt::AA_ShareOpenGLContexts);
+
+    QApplication a(argc, argv);
+    a.setOrganizationName(QString("Lau Consulting Inc"));
+    a.setOrganizationDomain(QString("drhalftone.com"));
+    a.setApplicationName(QString("LAUMultiPathRecorder"));
+    a.setQuitOnLastWindowClosed(true);
+
+    qRegisterMetaType<LAUMemoryObject>("LAUMemoryObject");
 
 #ifdef DONTCOMPILE
     LAUWebCameraDialog w(QCamera::CaptureVideo);
@@ -56,8 +65,11 @@ int main(int argc, char *argv[])
         return w.exec();
     }
 #else
+    //LAUCalTagOptDialog w((LAUMemoryObject(QString())));
     LAUCalTagDialog w((QImage()));
-    return w.exec();
+    if (w.isValid()) {
+        return w.exec();
+    }
 #endif
     return (0);
 }

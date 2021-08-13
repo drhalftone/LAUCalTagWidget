@@ -60,7 +60,10 @@ class LAUVideoGLWidget : public QOpenGLWidget, protected QOpenGLFunctions
     Q_OBJECT
 
 public:
-    explicit LAUVideoGLWidget(QWidget *parent = NULL) : QOpenGLWidget(parent), videoTexture(NULL), localBuffer(NULL), numCols(-1), numRows(-1), pixelFormat(QOpenGLTexture::RGBA), pixelType(QOpenGLTexture::UInt8), counter(0) { ; }
+    explicit LAUVideoGLWidget(QWidget *parent = nullptr) : QOpenGLWidget(parent), videoTexture(nullptr), localBuffer(nullptr), numCols(-1), numRows(-1), pixelFormat(QOpenGLTexture::RGBA), pixelType(QOpenGLTexture::UInt8), counter(0)
+    {
+        options.setAlignment(1);
+    }
     ~LAUVideoGLWidget();
 
     virtual bool isValid() const
@@ -101,6 +104,7 @@ public slots:
         update();
     }
     void setFrame(unsigned char *buffer);
+    void setFrame(LAUMemoryObject object);
     void setFrame(const QVideoFrame &frame);
     void setFrame(QImage frame);
 
@@ -128,12 +132,14 @@ protected:
         paint();
     }
 
+    QOpenGLPixelTransferOptions options;
     QOpenGLVertexArrayObject vertexArrayObject;
     QOpenGLBuffer quadVertexBuffer, quadIndexBuffer;
     QOpenGLShaderProgram program;
     QOpenGLTexture *videoTexture;
 
     QVideoFrame localVideoFrame;
+    LAUMemoryObject localMemoryObject;
     QImage localImage;
     unsigned char *localBuffer;
 
@@ -147,6 +153,9 @@ private:
 
     int counter;
     QTime time;
+
+signals:
+    void emitFrame(LAUMemoryObject);
 };
 
 #endif // LAUVIDEOGLWIDGET_H

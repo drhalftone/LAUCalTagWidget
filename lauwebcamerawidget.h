@@ -54,6 +54,11 @@
 
 #include "lauvideosurface.h"
 #include "laucaltagglwidget.h"
+#include "laucaltagoptglwidget.h"
+
+#ifdef USEBASLERUSBCAMERA
+#include "laubaslerusbcamera.h"
+#endif
 
 #define LAUWEBCAMERAWIDGETWIDTH  640
 #define LAUWEBCAMERAWIDGETHEIGHT 480
@@ -85,23 +90,43 @@ public slots:
     void onCapture();
     void onImageAvailable(int id, QImage image);
 
+    void setFrame(LAUMemoryObject object)
+    {
+        emit emitFrame(object);
+    }
+
 protected:
     void showEvent(QShowEvent *)
     {
         if (camera) {
+#ifdef USEBASLERUSBCAMERA
+            emit emitFrame(camera->memoryObject());
+            emit emitFrame(camera->memoryObject());
+            emit emitFrame(camera->memoryObject());
+#else
             camera->start();
             QTimer::singleShot(1000, this, SLOT(onCapture()));
+#endif
         }
     }
 
 private:
-    QCamera::CaptureMode mode;
-    LAUVideoGLWidget *label;
-    LAUCalTagFilterWidget *widget;
-    QThread *thread;
+#ifdef USEBASLERUSBCAMERA
+    LAUBaslerUSBCamera *camera;
+    QObject *imageCapture;
+    QObject *surface;
+#else
     QCamera *camera;
     QCameraImageCapture *imageCapture;
     LAUVideoSurface *surface;
+#endif
+    QThread *thread;
+    LAUVideoGLWidget *label;
+    LAUCalTagFilterWidget *widget;
+    QCamera::CaptureMode mode;
+
+signals:
+    void emitFrame(LAUMemoryObject);
 };
 
 /****************************************************************************/

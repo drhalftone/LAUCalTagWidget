@@ -197,6 +197,7 @@ LAUCalTagFilterWidget::LAUCalTagFilterWidget(LAUCalTagGLObject *object, QWidget 
     offsetSpinBox->setMinimum(-1.0);
     offsetSpinBox->setMaximum(1.0);
     offsetSpinBox->setSingleStep(0.01);
+    offsetSpinBox->setDecimals(4);
     offsetSpinBox->setFixedWidth(80);
     offsetSpinBox->setAlignment(Qt::AlignRight);
     connect(offsetSpinBox, SIGNAL(valueChanged(double)), object, SLOT(onSetOffset(double)));
@@ -335,12 +336,12 @@ void LAUCalTagFilterWidget::save()
 LAUCalTagGLObject::LAUCalTagGLObject(QObject *parent) : QObject(parent), isValidFlag(false)
 {
     // INITIALIZE PRIVATE VARIABLES
-    textureLUT = NULL;
+    textureLUT = nullptr;
 
-    frameBufferObjectA = NULL;
-    frameBufferObjectB = NULL;
-    frameBufferObjectC = NULL;
-    frameBufferObjectD = NULL;
+    frameBufferObjectA = nullptr;
+    frameBufferObjectB = nullptr;
+    frameBufferObjectC = nullptr;
+    frameBufferObjectD = nullptr;
 
     quantizationOffset = -0.01f;
     medianFilterRadius = 0;
@@ -519,6 +520,7 @@ void LAUCalTagGLObject::processGL(QOpenGLTexture *videoTexture, QOpenGLFramebuff
         if (memoryObject[0].width() != (unsigned int)videoTexture->width() || memoryObject[0].height() != (unsigned int)videoTexture->height()) {
             memoryObject[0] = LAUMemoryObject(videoTexture->width(), videoTexture->height(), 1, sizeof(unsigned char));
             memoryObject[1] = LAUMemoryObject(videoTexture->width(), videoTexture->height(), 1, sizeof(unsigned char));
+            memoryObject[2] = LAUMemoryObject(videoTexture->width(), videoTexture->height(), 1, sizeof(unsigned char));
 #ifdef QT_DEBUG
             debugObject = LAUMemoryObject(videoTexture->width(), videoTexture->height(), 3, sizeof(unsigned char));
 #endif
@@ -528,16 +530,24 @@ void LAUCalTagGLObject::processGL(QOpenGLTexture *videoTexture, QOpenGLFramebuff
         binarize(videoTexture, frameBufferObjectA, frameBufferObjectB, frameBufferObjectC);
         sobel(frameBufferObjectC, frameBufferObjectB);
         cleanUp(frameBufferObjectB, frameBufferObjectA);
-        //dilationErosion(frameBufferObjectA, frameBufferObjectB);
+        dilationErosion(frameBufferObjectA, frameBufferObjectB);
 
         // DOWNLOAD THE RESULTING BINARY TEXTURE TO OUR MEMORY BUFFER FOR FURTHER PROCESSING
         glBindTexture(GL_TEXTURE_2D, frameBufferObjectA->texture());
         glPixelStorei(GL_PACK_ALIGNMENT, 1);
         glGetTexImage(GL_TEXTURE_2D, 0, GL_RED, GL_UNSIGNED_BYTE, (unsigned char *)memoryObject[0].constPointer());
+        //memoryObject[0].save(QString("C:/memoryA.tif"));
 
         glBindTexture(GL_TEXTURE_2D, frameBufferObjectC->texture());
         glPixelStorei(GL_PACK_ALIGNMENT, 1);
         glGetTexImage(GL_TEXTURE_2D, 0, GL_RED, GL_UNSIGNED_BYTE, (unsigned char *)memoryObject[1].constPointer());
+        //memoryObject[1].save(QString("C:/memoryB.tif"));
+
+        // DOWNLOAD THE ORIGINAL FRAME TEXTURE TO OUR MEMORY BUFFER FOR FURTHER PROCESSING
+        videoTexture->bind();
+        glPixelStorei(GL_PACK_ALIGNMENT, 1);
+        glGetTexImage(GL_TEXTURE_2D, 0, GL_RED, GL_UNSIGNED_BYTE, (unsigned char *)memoryObject[2].constPointer());
+        //memoryObject[2].save(QString("C:/memoryC.tif"));
 
         // LOOK FOR CALTAGS AND GET THE CR TO XYZ TRANSFORM
         bool okay = false;
@@ -545,7 +555,7 @@ void LAUCalTagGLObject::processGL(QOpenGLTexture *videoTexture, QOpenGLFramebuff
         glBindTexture(GL_TEXTURE_2D, frameBufferObjectA->texture());
         glPixelStorei(GL_PACK_ALIGNMENT, 1);
         glGetTexImage(GL_TEXTURE_2D, 0, GL_RGB, GL_UNSIGNED_BYTE, (unsigned char *)debugObject.constPointer());
-        cv::Mat transform = detectCalTagGrid(memoryObject[0], memoryObject[1], debugObject, minBoxCount, minRegionArea, maxRegionArea, flipCalTagsFlag, gridPairings, &okay);
+        cv::Mat transform = detectCalTagGrid(memoryObject[2], memoryObject[0], memoryObject[1], debugObject, minBoxCount, minRegionArea, maxRegionArea, flipCalTagsFlag, gridPairings, &okay);
 #else
         cv::Mat transform = detectCalTagGrid(memoryObject[0], memoryObject[1], minBoxCount, minRegionArea, maxRegionArea, flipCalTagsFlag, gridPairings, &okay);
 #endif
@@ -602,7 +612,7 @@ void LAUCalTagGLObject::processGL(QOpenGLTexture *videoTexture, QOpenGLFramebuff
 /****************************************************************************/
 void LAUCalTagGLObject::testFBO(QOpenGLFramebufferObject *fbo[], int cols, int rows)
 {
-    if ((*fbo) == NULL) {
+    if ((*fbo) == nullptr) {
         // CREATE A FORMAT OBJECT FOR CREATING THE FRAME BUFFER
         QOpenGLFramebufferObjectFormat frameBufferObjectFormat;
         frameBufferObjectFormat.setInternalTextureFormat(GL_RGBA32F);
@@ -834,7 +844,7 @@ void LAUCalTagGLObject::sobel(QOpenGLFramebufferObject *fboA, QOpenGLFramebuffer
                     // TELL OPENGL PROGRAMMABLE PIPELINE HOW TO LOCATE VERTEX POSITION DATA
                     glVertexAttribPointer(programF.attributeLocation("qt_vertex"), 4, GL_FLOAT, GL_FALSE, 4 * sizeof(float), 0);
                     programF.enableAttributeArray("qt_vertex");
-                    glDrawElements(GL_TRIANGLES, 6, GL_UNSIGNED_INT, 0);
+                    glDrawElements(GL_TRIANGLES, 6, GL_UNSIGNED_INT, nullptr);
 
                     // RELEASE THE FRAME BUFFER OBJECT AND ITS ASSOCIATED GLSL PROGRAMS
                     quadIndexBuffer.release();
@@ -853,8 +863,8 @@ void LAUCalTagGLObject::sobel(QOpenGLFramebufferObject *fboA, QOpenGLFramebuffer
 void LAUCalTagGLObject::cleanUp(QOpenGLFramebufferObject *fboA, QOpenGLFramebufferObject *fboB)
 {
     for (int n = 0; n < 4; n++) {
-        QOpenGLFramebufferObject *inFBO = NULL;
-        QOpenGLFramebufferObject *otFBO = NULL;
+        QOpenGLFramebufferObject *inFBO = nullptr;
+        QOpenGLFramebufferObject *otFBO = nullptr;
 
         switch (n) {
             case 0:
@@ -1035,9 +1045,9 @@ void LAUCalTagGLObject::dilationErosion(QOpenGLFramebufferObject *fboA, QOpenGLF
 /***************************************************************************/
 /***************************************************************************/
 #ifdef QT_DEBUG
-cv::Mat LAUCalTagGLObject::detectCalTagGrid(LAUMemoryObject sbObj, LAUMemoryObject inObj, LAUMemoryObject dbObj, int minBoxes, int minRegion, int maxRegion, bool flipCalTags, QList<Pairing> &pairings, bool *okay)
+cv::Mat LAUCalTagGLObject::detectCalTagGrid(LAUMemoryObject rwObj, LAUMemoryObject sbObj, LAUMemoryObject inObj, LAUMemoryObject dbObj, int minBoxes, int minRegion, int maxRegion, bool flipCalTags, QList<Pairing> &pairings, bool *okay)
 #else
-cv::Mat LAUCalTagGLObject::detectCalTagGrid(LAUMemoryObject sbObj, LAUMemoryObject inObj, int minBoxes, int minRegion, int maxRegion, bool flipCalTags, QList<Pairing> &pairings, bool *okay)
+cv::Mat LAUCalTagGLObject::detectCalTagGrid(LAUMemoryObject rwObj, LAUMemoryObject sbObj, LAUMemoryObject inObj, int minBoxes, int minRegion, int maxRegion, bool flipCalTags, QList<Pairing> &pairings, bool *okay)
 #endif
 {
     qDebug() << minBoxes << minRegion << maxRegion << flipCalTags;
@@ -1049,8 +1059,9 @@ cv::Mat LAUCalTagGLObject::detectCalTagGrid(LAUMemoryObject sbObj, LAUMemoryObje
     cv::Mat localTransform(1, 30, CV_64F);
 
     // CREATE CV::MAT WRAPPER AROUND OUR MEMORY OBJECT
-    cv::Mat sbImage(sbObj.height(), sbObj.width(), CV_8UC1, (unsigned char *)sbObj.constPointer(), sbObj.step());
+    cv::Mat rwImage(rwObj.height(), rwObj.width(), CV_8UC1, (unsigned char *)rwObj.constPointer(), rwObj.step());
     cv::Mat inImage(inObj.height(), inObj.width(), CV_8UC1, (unsigned char *)inObj.constPointer(), inObj.step());
+    cv::Mat sbImage(sbObj.height(), sbObj.width(), CV_8UC1, (unsigned char *)sbObj.constPointer(), sbObj.step());
 #ifdef QT_DEBUG
     cv::Mat dbImage(dbObj.height(), dbObj.width(), CV_8UC3, (unsigned char *)dbObj.constPointer(), dbObj.step());
 #endif
@@ -1059,7 +1070,19 @@ cv::Mat LAUCalTagGLObject::detectCalTagGrid(LAUMemoryObject sbObj, LAUMemoryObje
     cv::vector<cv::vector<cv::Point2f>> quads = quadArea(sbImage, minRegion, maxRegion);
 
     // GET A GOOD APPROXIMATION OF WHERE THE SADDLE POINTS ARE
-    quads = findSaddles(quads);
+    quads = findSaddles(rwImage, quads);
+    //quads = organizeSquares(quads);
+
+#ifdef QT_DEBUG
+    for (unsigned int n = 0; n < quads.size(); n++) {
+        for (unsigned int m = 0; m < quads[n].size(); m++) {
+            if (qIsNaN(quads[n][m].x * quads[n][m].y) == false) {
+                cv::circle(dbImage, quads[n][m], 4, cv::Scalar(255, 255, 0), -1);
+            }
+        }
+    }
+    cv::imshow("Debug Image", dbImage);
+#endif
 
     // DECODE THE CALTAG SQUARES
     cv::vector<cv::vector<cv::Point2f>> coordinates = findPattern(inImage, quads, flipCalTags);
@@ -1072,7 +1095,7 @@ cv::Mat LAUCalTagGLObject::detectCalTagGrid(LAUMemoryObject sbObj, LAUMemoryObje
             }
         }
     }
-    //cv::imshow("", dbImage);
+    cv::imshow("Debug Image", dbImage);
 #endif
 
     // MAKE SURE WE HAVE ENOUGH DETECTED RECTANGLES
@@ -1154,7 +1177,7 @@ cv::vector<cv::vector<cv::Point2f>> LAUCalTagGLObject::quadArea(cv::Mat sbImage,
     // FOR EACH CONTOUR, APPROXIMATE IT WITH A POLYGON
     for (unsigned int i = 0; i < contours.size(); ++i) {
         contoursPoly.push_back(contours[i]);
-        cv::approxPolyDP(contours[i], contoursPoly[i], 3.0, true);
+        cv::approxPolyDP(contours[i], contoursPoly[i], 5.0, true);
         if (contoursPoly[i].size() == 4 && cv::isContourConvex(contoursPoly[i])) {
             int area = cv::contourArea(contoursPoly[i]);
             if (area > minArea && area < maxArea) {
@@ -1169,13 +1192,18 @@ cv::vector<cv::vector<cv::Point2f>> LAUCalTagGLObject::quadArea(cv::Mat sbImage,
 /***************************************************************************/
 /***************************************************************************/
 /***************************************************************************/
-cv::vector<cv::vector<cv::Point2f>> LAUCalTagGLObject::findSaddles(cv::vector<cv::vector<cv::Point2f>> quads)
+cv::vector<cv::vector<cv::Point2f>> LAUCalTagGLObject::findSaddles(cv::Mat inImage, cv::vector<cv::vector<cv::Point2f>> quads)
 {
+    for (unsigned int n = 0; n < quads.size(); n++) {
+        cv::TermCriteria criteria = cv::TermCriteria(cv::TermCriteria::EPS + cv::TermCriteria::COUNT, 400, 0.0001);
+        cv::cornerSubPix(inImage, quads[n], cv::Size(9, 9), cv::Size(3, 3), criteria);
+    }
+
     QList<unsigned int> indices;
     for (unsigned int m = 0; m < 4 * quads.size(); m++) {
         cv::Point2f meanPt(0.0f, 0.0f);
         for (unsigned int n = m; n < 4 * quads.size(); n++) {
-            if (LAUCalTagGLObject::length(quads[m / 4][m % 4] - quads[n / 4][n % 4]) < 5.0f) {
+            if (LAUCalTagGLObject::length(quads[m / 4][m % 4] - quads[n / 4][n % 4]) < 20.0f) {
                 meanPt = meanPt + quads[n / 4][n % 4];
                 indices << n;
             }
@@ -1481,6 +1509,10 @@ cv::vector<cv::vector<cv::Point2f>> LAUCalTagGLObject::findPattern(cv::Mat inIma
                 square.push_back(sqPoints[3] + point);
                 square.push_back(sqPoints[0] + point);
                 outputSquares.push_back(square);
+
+                // PRINT OUT THE IMAGE COORDINATES AND THE DETECTED CODE
+                //qDebug() << n << squares[n][0].x << squares[n][0].y << squares[n][1].x << squares[n][1].y << squares[n][2].x << squares[n][2].y << squares[n][3].x << squares[n][3].y <<  code;
+                //qDebug() << n << square[0].x << square[0].y << square[1].x << square[1].y << square[2].x << square[2].y << square[3].x << square[3].y <<  code;
             }
         }
     }
@@ -1587,7 +1619,54 @@ cv::vector<cv::vector<cv::Point2f>> LAUCalTagGLObject::organizeSquares(cv::vecto
 /****************************************************************************/
 bool LAUCalTagGLObject::checkBitCode(int code, cv::Point2f *pt)
 {
-    // DEFINE LOOK-UP TABLE
+    qDebug() << "Code:" << code;
+    //#define USE4x4CALTAGTARGET
+#ifdef USE4x4CALTAGTARGET
+    static const int realBitCodes[4][4] = {
+        {55832,	36200,	48172,	36446},
+        {52024,	40282,	44062,	40830},
+        {48648,	35962,	48446,	53085},
+        {44840,	56409,	60701,	56957}
+    };
+
+    for (int i = 0; i < 4; i++) {
+        for (int j = 3; j >= 0; j--) {
+            if (code == realBitCodes[i][j]) {
+                *pt = cv::Point2f((float)(i - 7), (float)(j - 7));
+                return (true);
+            }
+        }
+    }
+#else
+    //#define USESQUARECALTAGTARGET
+#ifdef USESQUARECALTAGTARGET
+    static const int realBitCodes[15][15] = {
+        {8578, 12720, 56439, 52567, 56677, 52293, 40038, 36166, 40308, 63606, 59734, 63844, 59460, 47207, 43335},
+        {47477, 65079, 61207, 60933, 48678, 48948, 55862, 51990, 56100, 51716, 39463, 35591, 39733, 35349, 53107},
+        {56915, 57153, 36706, 40514, 36464, 40784, 60274, 64082, 60000, 43875, 47683, 43633, 47953, 60723, 64531},
+        {60449, 64769, 44322, 48130, 44080, 51506, 55314, 55552, 35107, 38915, 34865, 39185, 23879, 19829, 3190},
+        {7510, 3428, 7236, 31046, 26996, 30804, 10359, 14679, 14405, 28199, 32519, 28469, 32277, 11830, 16150},
+        {12068, 15876, 18982, 23302, 19252, 23060, 6935, 2853, 6661, 24419, 24177, 20305, 8050, 3666, 7776},
+        {31586, 27202, 31344, 27472, 15219, 10835, 14945, 11073, 32035, 27651, 31793, 27921, 15666, 11282, 11520},
+        {22818, 22576, 18704, 6451, 6177, 54646, 50262, 54372, 50500, 38247, 33863, 38005, 34133, 61815, 57431},
+        {57669, 45414, 41030, 45172, 41300, 63286, 58902, 63012, 59140, 46887, 42503, 46645, 42773, 54071, 49687},
+        {53797, 49925, 37670, 33286, 37428, 50802, 55122, 51040, 34403, 38723, 34673, 38481, 57971, 62291, 58209},
+        {62017, 41570, 45890, 41840, 45648, 58418, 62738, 58656, 62464, 42019, 46339, 42289, 46097, 49203, 53523},
+        {49441, 53249, 37122, 33072, 17766, 21574, 17524, 21844, 5207, 1125, 5445, 24935, 28743, 24693, 29013},
+        {8566, 12374, 8292, 12612, 26406, 30214, 26164, 30484, 10039, 13847, 9765, 14085, 17191, 20999, 16949},
+        {21269, 822, 4630, 4868, 22114, 18242, 22384, 18000, 5747, 1875, 5985, 1601, 29283, 25411, 29553},
+        {25169, 12914, 9042, 13152, 29730, 25858, 30000, 25616, 13363, 9491, 13601, 20515, 16643, 20785, 4146}
+    };
+
+    for (int i = 0; i < 15; i++) {
+        for (int j = 14; j >= 0; j--) {
+            if (code == realBitCodes[i][j]) {
+                *pt = cv::Point2f((float)(i - 7), (float)(j - 7));
+                return (true);
+            }
+        }
+    }
+#else
     static const int realBitCodes[20][14] = {
         {19853,	19918,	20121,	20186,	20373,	20438,	20497,	20562,	20692,	20765,	20830,	20891,	20952,	21001},
         {18674,	18747,	18808,	18877,	18942,	18991,	19052,	19113,	19235,	19296,	19365,	19650,	19723,	19784},
@@ -1616,12 +1695,11 @@ bool LAUCalTagGLObject::checkBitCode(int code, cv::Point2f *pt)
             if (code == realBitCodes[i][j]) {
                 *pt = cv::Point2f((float)(j - 7), (float)(i - 7));
                 return (true);
-            } else if (code > realBitCodes[i][j]) {
-                return (false);
             }
         }
     }
-    return (false);
+#endif
+#endif
 }
 
 /******************************************************************************/
@@ -1914,6 +1992,49 @@ cv::Mat LAUCalTagGLObject::findBestQuadraticMapping(cv::vector<cv::Point2f> fmPo
         }
     }
     return (lVec);
+}
+
+/****************************************************************************/
+/****************************************************************************/
+/****************************************************************************/
+QPointF LAUCalTagGLObject::transformPoint(QPointF pt, cv::Mat tMat)
+{
+    double x = (double)pt.x();
+    double y = (double)pt.y();
+
+    double xp = 0.0, yp = 0.0;
+
+    xp += x * x * x * x * tMat.at<double>(0);
+    xp += x * x * x * y * tMat.at<double>(1);
+    xp += x * x * y * y * tMat.at<double>(2);
+    xp += x * y * y * y * tMat.at<double>(3);
+    xp += y * y * y * y * tMat.at<double>(4);
+    xp += x * x * x * tMat.at<double>(5);
+    xp += x * x * y * tMat.at<double>(6);
+    xp += x * y * y * tMat.at<double>(7);
+    xp += y * y * y * tMat.at<double>(8);
+    xp += x * x * tMat.at<double>(9);
+    xp += x * y * tMat.at<double>(10);
+    xp += y * y * tMat.at<double>(11);
+    xp += x * tMat.at<double>(12);
+    xp += y * tMat.at<double>(13);
+    xp += tMat.at<double>(14);
+
+    yp += x * x * x * x * tMat.at<double>(15);
+    yp += x * x * x * y * tMat.at<double>(16);
+    yp += x * x * y * y * tMat.at<double>(17);
+    yp += x * y * y * y * tMat.at<double>(18);
+    yp += y * y * y * y * tMat.at<double>(19);
+    yp += x * x * x * tMat.at<double>(20);
+    yp += x * x * y * tMat.at<double>(21);
+    yp += x * y * y * tMat.at<double>(22);
+    yp += y * y * y * tMat.at<double>(23);
+    yp += x * x * tMat.at<double>(24);
+    yp += x * y * tMat.at<double>(25);
+    yp += y * y * tMat.at<double>(26);
+    yp += x * tMat.at<double>(27);
+    yp += y * tMat.at<double>(28);
+    yp += tMat.at<double>(28);
 }
 
 /****************************************************************************/

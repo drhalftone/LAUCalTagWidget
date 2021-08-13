@@ -747,6 +747,8 @@ QPointF LAUCalTagOptGLObject::transformPoint(QPointF pt, cv::Mat tMat)
     yp += x * tMat.at<double>(27);
     yp += y * tMat.at<double>(28);
     yp += tMat.at<double>(28);
+
+    return(QPointF(xp,yp));
 }
 
 /****************************************************************************/

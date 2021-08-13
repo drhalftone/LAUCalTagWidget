@@ -228,6 +228,16 @@ bool LAUMemoryObject::save(QString filename)
         filename = QFileDialog::getSaveFileName(nullptr, QString("Save image to disk (*.tif)"), filename, QString("*.tif;*.tiff"));
         if (!filename.isNull()) {
             settings.setValue(QString("LAUMemoryObject::lastUsedDirectory"), QFileInfo(filename).absolutePath());
+            if (filename.toLower().endsWith(QString(".bmp"))) {
+                filename.chop(4);
+            } else if (filename.toLower().endsWith(QString(".jpg"))) {
+                filename.chop(4);
+            } else if (filename.toLower().endsWith(QString(".jpeg"))) {
+                filename.chop(5);
+            } else if (filename.toLower().endsWith(QString(".png"))) {
+                filename.chop(4);
+            }
+
             if (!filename.toLower().endsWith(QString(".tiff"))) {
                 if (!filename.toLower().endsWith(QString(".tif"))) {
                     filename = QString("%1.tif").arg(filename);

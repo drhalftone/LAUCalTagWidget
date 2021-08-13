@@ -198,7 +198,7 @@ public:
     bool isValid()
     {
         if (widget) {
-            return (widget->isValid());
+            return (true);
         }
         return (false);
     }

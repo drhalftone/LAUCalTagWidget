@@ -104,13 +104,7 @@ unix:!macx {
 win32 {
     INCLUDEPATH   += $$quote(C:/usr/opencv/include) $$quote(C:/usr/include)
     DEPENDPATH    += $$quote(C:/usr/opencv/include) $$quote(C:/usr/include)
-    LIBS          += -L$$quote(C:/usr/lib) -L$$quote(C:/usr/opencv/x64/vc15/lib) -llibtiff_i -lopengl32
-    CONFIG(release, debug|release): LIBS += -lopencv_world342
-    CONFIG(debug, debug|release):   LIBS += -lopencv_world342d
-
-    basler{
-        INCLUDEPATH += $$quote(C:/Program Files/Basler/pylon 5/Development/include)
-        DEPENDPATH  += $$quote(C:/Program Files/Basler/pylon 5/Development/include)
-        LIBS        += -L$$quote(C:/Program Files/Basler/pylon 5/Development/lib/x64/) -lPylonBase_v5_1
-    }
+    LIBS          += -L$$quote(C:/usr/lib) -L$$quote(C:/usr/opencv/x64/vc16/lib) -llibtiff_i -lopengl32
+    CONFIG(release, debug|release): LIBS += -lopencv_core452 -lopencv_objdetect452 -lopencv_imgproc452 -lopencv_calib3d452 -lopencv_highgui452
+    CONFIG(debug, debug|release):   LIBS += -lopencv_core452d -lopencv_objdetect452d -lopencv_imgproc452d -lopencv_calib3d452d -lopencv_highgui452d
 }

@@ -1638,7 +1638,7 @@ bool LAUCalTagGLObject::checkBitCode(int code, cv::Point2f *pt)
         }
     }
 #else
-    //#define USESQUARECALTAGTARGET
+//#define USESQUARECALTAGTARGET
 #ifdef USESQUARECALTAGTARGET
     static const int realBitCodes[15][15] = {
         {8578, 12720, 56439, 52567, 56677, 52293, 40038, 36166, 40308, 63606, 59734, 63844, 59460, 47207, 43335},
@@ -1700,6 +1700,7 @@ bool LAUCalTagGLObject::checkBitCode(int code, cv::Point2f *pt)
     }
 #endif
 #endif
+    return(false);
 }
 
 /******************************************************************************/
@@ -2035,6 +2036,8 @@ QPointF LAUCalTagGLObject::transformPoint(QPointF pt, cv::Mat tMat)
     yp += x * tMat.at<double>(27);
     yp += y * tMat.at<double>(28);
     yp += tMat.at<double>(28);
+
+    return(QPointF(xp,yp));
 }
 
 /****************************************************************************/

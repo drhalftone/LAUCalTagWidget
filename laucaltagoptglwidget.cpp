@@ -40,9 +40,9 @@ LAUCalTagOptDialog::LAUCalTagOptDialog(QImage image, QWidget *parent) : QDialog(
     if (image.isNull()) {
         QSettings settings;
         QString directory = settings.value("LAUCalTagOptDialog::lastUsedDirectory", QStandardPaths::writableLocation(QStandardPaths::DocumentsLocation)).toString();
-        QString filename = QFileDialog::getOpenFileName(0, QString("Load image from disk"), directory, QString("*.tif *.tiff *.bmp *.jpg *.jpeg"));
+        QString filename = QFileDialog::getOpenFileName(0, QString("Load image from disk"), directory, QString("*.tif *.tiff *.bmp *.jpg *.jpeg *.png"));
         if (filename.isEmpty() == false) {
-            settings.setValue("LAUCalTagOptDialog::lastUsedDirectory", QFileInfo(filename).absolutePath());
+            settings.setValue("LAUCalTagOptDialog::lastUsedDirectory", QFileInfo(filename).absoluteFilePath());
         } else {
             return;
         }
@@ -70,7 +70,7 @@ LAUCalTagOptDialog::LAUCalTagOptDialog(LAUMemoryObject image, QWidget *parent) :
         QString directory = settings.value("LAUCalTagOptDialog::lastUsedDirectory", QStandardPaths::writableLocation(QStandardPaths::DocumentsLocation)).toString();
         QString filename = QFileDialog::getOpenFileName(0, QString("Load image from disk"), directory, QString("*.tif *.tiff"));
         if (filename.isEmpty() == false) {
-            settings.setValue("LAUCalTagOptDialog::lastUsedDirectory", QFileInfo(filename).absolutePath());
+            settings.setValue("LAUCalTagOptDialog::lastUsedDirectory", QFileInfo(filename).absoluteFilePath());
         } else {
             return;
         }

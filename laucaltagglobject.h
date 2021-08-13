@@ -32,7 +32,7 @@ namespace cv
     using std::vector;
 }
 
-#define CALTAGPOLYNOMIALORDER 1
+#define CALTAGPOLYNOMIALORDER 2
 
 class LAUCalTagGLObject;
 class LAUCalTagFilterWidget;

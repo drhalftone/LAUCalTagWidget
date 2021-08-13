@@ -206,9 +206,18 @@ public:
 protected:
     void accept()
     {
+        QSettings settings;
         LAUMemoryObject object = widget->grabImage();
-        if (object.save(QString())) {
-            QDialog::accept();
+        QString filename = settings.value(QString("LAUCalTagDialog::lastUsedDirectory"), QStandardPaths::writableLocation(QStandardPaths::DocumentsLocation)).toString();
+        if (filename.endsWith(".png")) {
+            filename.chop(3);
+            filename.append("tif");
+        }
+        filename = QFileDialog::getSaveFileName(nullptr, QString("Save image to disk (*.tif)"), filename, QString("*.tif;*.tiff"));
+        if (!filename.isNull()) {
+            if (object.save(filename)) {
+                QDialog::accept();
+            }
         }
     }
 

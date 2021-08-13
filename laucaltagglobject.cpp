@@ -1177,7 +1177,7 @@ cv::vector<cv::vector<cv::Point2f>> LAUCalTagGLObject::quadArea(cv::Mat sbImage,
     // FOR EACH CONTOUR, APPROXIMATE IT WITH A POLYGON
     for (unsigned int i = 0; i < contours.size(); ++i) {
         contoursPoly.push_back(contours[i]);
-        cv::approxPolyDP(contours[i], contoursPoly[i], 5.0, true);
+        cv::approxPolyDP(contours[i], contoursPoly[i], 15.0, true);
         if (contoursPoly[i].size() == 4 && cv::isContourConvex(contoursPoly[i])) {
             int area = cv::contourArea(contoursPoly[i]);
             if (area > minArea && area < maxArea) {

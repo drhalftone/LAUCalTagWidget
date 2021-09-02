@@ -557,7 +557,7 @@ void LAUCalTagGLObject::processGL(QOpenGLTexture *videoTexture, QOpenGLFramebuff
         glGetTexImage(GL_TEXTURE_2D, 0, GL_RGB, GL_UNSIGNED_BYTE, (unsigned char *)debugObject.constPointer());
         cv::Mat transform = detectCalTagGrid(memoryObject[2], memoryObject[0], memoryObject[1], debugObject, minBoxCount, minRegionArea, maxRegionArea, flipCalTagsFlag, gridPairings, &okay);
 #else
-        cv::Mat transform = detectCalTagGrid(memoryObject[0], memoryObject[1], minBoxCount, minRegionArea, maxRegionArea, flipCalTagsFlag, gridPairings, &okay);
+        cv::Mat transform = detectCalTagGrid(memoryObject[2], memoryObject[0], memoryObject[1], minBoxCount, minRegionArea, maxRegionArea, flipCalTagsFlag, gridPairings, &okay);
 #endif
         float transformAsVector[30];
         for (int n = 0; n < 30; n++) {
@@ -1638,7 +1638,7 @@ bool LAUCalTagGLObject::checkBitCode(int code, cv::Point2f *pt)
         }
     }
 #else
-//#define USESQUARECALTAGTARGET
+    //#define USESQUARECALTAGTARGET
 #ifdef USESQUARECALTAGTARGET
     static const int realBitCodes[15][15] = {
         {8578, 12720, 56439, 52567, 56677, 52293, 40038, 36166, 40308, 63606, 59734, 63844, 59460, 47207, 43335},
@@ -1700,7 +1700,7 @@ bool LAUCalTagGLObject::checkBitCode(int code, cv::Point2f *pt)
     }
 #endif
 #endif
-    return(false);
+    return (false);
 }
 
 /******************************************************************************/
@@ -2037,7 +2037,7 @@ QPointF LAUCalTagGLObject::transformPoint(QPointF pt, cv::Mat tMat)
     yp += y * tMat.at<double>(28);
     yp += tMat.at<double>(28);
 
-    return(QPointF(xp,yp));
+    return (QPointF(xp, yp));
 }
 
 /****************************************************************************/

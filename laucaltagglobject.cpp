@@ -290,6 +290,8 @@ LAUCalTagFilterWidget::LAUCalTagFilterWidget(LAUCalTagGLObject *object, QWidget 
     maxRegionArea->setValue(object->maxRegion());
     minBoxCount->setValue(object->minBox());
     flipCalTagsFlag->setChecked(object->flipCalTags());
+
+    load();
 }
 
 /****************************************************************************/
@@ -1101,6 +1103,8 @@ cv::Mat LAUCalTagGLObject::detectCalTagGrid(LAUMemoryObject sbObj, LAUMemoryObje
                 if (qIsNaN(coordinates[i][j].x * coordinates[i][j].y) == false) {
                     fmPoints.push_back(quads[i][j]);
                     toPoints.push_back(coordinates[i][j]);
+
+                    qDebug() << quads[i][j].x << quads[i][j].y << coordinates[i][j].x << coordinates[i][j].y;
                 }
             }
         }
@@ -1596,6 +1600,7 @@ cv::vector<cv::vector<cv::Point2f>> LAUCalTagGLObject::organizeSquares(cv::vecto
 bool LAUCalTagGLObject::checkBitCode(int code, cv::Point2f *pt)
 {
     // DEFINE LOOK-UP TABLE
+//#define USESQUARECALTAGTARGET
 #ifdef USESQUARECALTAGTARGET
     static const int realBitCodes[15][15] = {
         {8578, 12720, 56439, 52567, 56677, 52293, 40038, 36166, 40308, 63606, 59734, 63844, 59460, 47207, 43335},
@@ -1618,7 +1623,7 @@ bool LAUCalTagGLObject::checkBitCode(int code, cv::Point2f *pt)
     for (int i = 0; i < 15; i++) {
         for (int j = 14; j >= 0; j--) {
             if (code == realBitCodes[i][j]) {
-                *pt = cv::Point2f((float)(j - 7), (float)(i - 7));
+                *pt = cv::Point2f((float)(i - 7), (float)(j - 7));
                 return (true);
             }
         }

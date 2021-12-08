@@ -31,7 +31,7 @@ namespace cv
     using std::vector;
 }
 
-#define CALTAGPOLYNOMIALORDER 2
+#define CALTAGPOLYNOMIALORDER 4
 
 class LAUCalTagGLObject;
 class LAUCalTagFilterWidget;
@@ -46,6 +46,9 @@ class LAUCalTagFilterWidget : public QWidget
 
 public:
     LAUCalTagFilterWidget(LAUCalTagGLObject *object, QWidget *parent = NULL);
+    ~LAUCalTagFilterWidget(){
+        save();
+    }
 
     void load();
     void save();

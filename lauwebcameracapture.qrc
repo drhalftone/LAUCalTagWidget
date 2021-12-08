@@ -24,5 +24,11 @@
         <file>Shaders/calTagXYZW.vert</file>
         <file>Shaders/displayRGBVideo.vert</file>
         <file>Shaders/displayRGBVideo.frag</file>
+        <file>Shaders/displayCalTagOpt.frag</file>
+        <file>Shaders/displayCalTagOpt.vert</file>
+        <file>Shaders/filterGradient.frag</file>
+        <file>Shaders/filterGradient.vert</file>
+        <file>Shaders/filterBinaryCalTag.frag</file>
+        <file>Shaders/filterBinaryCalTag.vert</file>
     </qresource>
 </RCC>

@@ -8,7 +8,7 @@ bool LAUBaslerUSBCamera::libraryInitializedFlag = false;
 /****************************************************************************/
 /****************************************************************************/
 /****************************************************************************/
-LAUBaslerUSBCamera::LAUBaslerUSBCamera(QObject *parent) : QObject(parent), numRows(0), numCols(0), bitsPerPixel(12), isConnected(false), camera(NULL)
+LAUBaslerUSBCamera::LAUBaslerUSBCamera(QObject *parent) : QObject(parent), numRows(0), numCols(0), bitsPerPixel(12), isConnected(false), camera(nullptr)
 {
     // INITIALIZE CAMERA LIBRARY AND UNLOAD IF ERROR
     if (!libraryInitializedFlag) {

@@ -30,8 +30,8 @@
  *                                                                               *
  *********************************************************************************/
 
-#ifndef LAUCALTAGGLWIDGET_H
-#define LAUCALTAGGLWIDGET_H
+#ifndef LAUCALTAGOPTGLWIDGET_H
+#define LAUCALTAGOPTGLWIDGET_H
 
 #include <QtCore>
 #include <QObject>
@@ -50,23 +50,23 @@
 #include <QDialogButtonBox>
 
 #include "lauvideoglwidget.h"
-#include "laucaltagglobject.h"
+#include "laucaltagoptglobject.h"
 
 /****************************************************************************/
 /****************************************************************************/
 /****************************************************************************/
-class LAUCalTagGLWidget : public LAUVideoGLWidget
+class LAUCalTagOptGLWidget : public LAUVideoGLWidget
 {
     Q_OBJECT
 
 public:
-    explicit LAUCalTagGLWidget(QWidget *parent = nullptr);
-    ~LAUCalTagGLWidget();
+    explicit LAUCalTagOptGLWidget(QWidget *parent = nullptr);
+    ~LAUCalTagOptGLWidget();
 
-    LAUCalTagFilterWidget *widget(QWidget *parent = nullptr)
+    LAUCalTagOptFilterWidget *widget(QWidget *parent = nullptr)
     {
-        if (calTagGLObject) {
-            return (calTagGLObject->widget(parent));
+        if (calTagOptGLObject) {
+            return (calTagOptGLObject->widget(parent));
         }
         return (nullptr);
     }
@@ -74,8 +74,8 @@ public:
     LAUMemoryObject grabImage()
     {
         LAUMemoryObject object;
-        if (calTagGLObject && calTagGLObject->isValid()) {
-            object = calTagGLObject->grabImage();
+        if (calTagOptGLObject && calTagOptGLObject->isValid()) {
+            object = calTagOptGLObject->grabImage();
         }
         return (object);
     }
@@ -88,26 +88,23 @@ protected:
     void paint();
 
 private:
-    LAUCalTagGLObject *calTagGLObject;
+    LAUCalTagOptGLObject *calTagOptGLObject;
 };
 
 /****************************************************************************/
 /****************************************************************************/
 /****************************************************************************/
-class LAUCalTagWidget : public QWidget
+class LAUCalTagOptWidget : public QWidget
 {
     Q_OBJECT
 
 public:
-    LAUCalTagWidget(QImage image, QWidget *parent = nullptr);
-    LAUCalTagWidget(LAUMemoryObject image, QWidget *parent = nullptr);
-    LAUCalTagWidget(QWidget *parent = nullptr);
-    ~LAUCalTagWidget()
+    LAUCalTagOptWidget(QImage image, QWidget *parent = nullptr);
+    LAUCalTagOptWidget(LAUMemoryObject image, QWidget *parent = nullptr);
+    LAUCalTagOptWidget(QWidget *parent = nullptr);
+    ~LAUCalTagOptWidget()
     {
-        if (widget) {
-            widget->save();
-        }
-        qDebug() << "LAUCalTagWidget::~LAUCalTagWidget()";
+        qDebug() << "LAUCalTagOptWidget::~LAUCalTagOptWidget()";
     }
 
     bool isValid() const
@@ -178,8 +175,8 @@ public slots:
     }
 
 private:
-    LAUCalTagGLWidget *glWidget;
-    LAUCalTagFilterWidget *widget;
+    LAUCalTagOptGLWidget *glWidget;
+    LAUCalTagOptFilterWidget *widget;
 
     void initialize();
 };
@@ -187,42 +184,25 @@ private:
 /****************************************************************************/
 /****************************************************************************/
 /****************************************************************************/
-class LAUCalTagDialog : public QDialog
+class LAUCalTagOptDialog : public QDialog
 {
     Q_OBJECT
 
 public:
-    LAUCalTagDialog(QImage image, QWidget *parent = nullptr);
-    LAUCalTagDialog(LAUMemoryObject image, QWidget *parent = nullptr);
-
-    bool isValid()
-    {
-        if (widget) {
-            return (true);
-        }
-        return (false);
-    }
+    LAUCalTagOptDialog(QImage image, QWidget *parent = nullptr);
+    LAUCalTagOptDialog(LAUMemoryObject image, QWidget *parent = nullptr);
 
 protected:
     void accept()
     {
-        QSettings settings;
         LAUMemoryObject object = widget->grabImage();
-        QString filename = settings.value(QString("LAUCalTagDialog::lastUsedDirectory"), QStandardPaths::writableLocation(QStandardPaths::DocumentsLocation)).toString();
-        if (filename.endsWith(".png")) {
-            filename.chop(3);
-            filename.append("tif");
-        }
-        filename = QFileDialog::getSaveFileName(nullptr, QString("Save image to disk (*.tif)"), filename, QString("*.tif;*.tiff"));
-        if (!filename.isNull()) {
-            if (object.save(filename)) {
-                QDialog::accept();
-            }
+        if (object.save(QString())) {
+            QDialog::accept();
         }
     }
 
 private:
-    LAUCalTagWidget *widget;
+    LAUCalTagOptWidget *widget;
 };
 
-#endif // LAUCALTAGGLWIDGET_H
+#endif // LAUCALTAGOPTGLWIDGET_H

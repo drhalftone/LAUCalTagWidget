@@ -60,7 +60,7 @@ class LAUVideoGLWidget : public QOpenGLWidget, protected QOpenGLFunctions
     Q_OBJECT
 
 public:
-    explicit LAUVideoGLWidget(QWidget *parent = NULL) : QOpenGLWidget(parent), videoTexture(NULL), localBuffer(NULL), numCols(-1), numRows(-1), pixelFormat(QOpenGLTexture::RGBA), pixelType(QOpenGLTexture::UInt8), counter(0)
+    explicit LAUVideoGLWidget(QWidget *parent = nullptr) : QOpenGLWidget(parent), videoTexture(nullptr), localBuffer(nullptr), numCols(-1), numRows(-1), pixelFormat(QOpenGLTexture::RGBA), pixelType(QOpenGLTexture::UInt8), counter(0)
     {
         options.setAlignment(1);
     }
@@ -139,6 +139,7 @@ protected:
     QOpenGLTexture *videoTexture;
 
     QVideoFrame localVideoFrame;
+    LAUMemoryObject localMemoryObject;
     QImage localImage;
     unsigned char *localBuffer;
 

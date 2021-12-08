@@ -54,7 +54,9 @@ SOURCES += \
         lauvideosurface.cpp \
         lauvideoglwidget.cpp \
         laucaltagglwidget.cpp \
-        laucaltagglobject.cpp
+        laucaltagglobject.cpp \
+        laucaltagoptglwidget.cpp \
+        laucaltagoptglobject.cpp
 
 HEADERS += \
         laumemoryobject.h \
@@ -62,7 +64,9 @@ HEADERS += \
         lauvideosurface.h \
         lauvideoglwidget.h \
         laucaltagglwidget.h \
-        laucaltagglobject.h
+        laucaltagglobject.h \
+        laucaltagoptglwidget.h \
+        laucaltagoptglobject.h
 
 RESOURCES += lauwebcameracapture.qrc
 
@@ -76,9 +80,9 @@ basler {
 
 unix:macx {
     CONFIG        += c++11
-    INCLUDEPATH   += /usr/local/opt/opencv@3/include /usr/local/include
-    DEPENDPATH    += /usr/local/opt/opencv@3/include /usr/local/include
-    LIBS          += -L/usr/local/opt/opencv@3/lib -lopencv_core -lopencv_objdetect -lopencv_imgcodecs \
+    INCLUDEPATH   += /usr/local/opt/opencv/include/opencv4 /usr/local/include/TIFF
+    DEPENDPATH    += /usr/local/opt/opencv/include/opencv4 /usr/local/include/TIFF
+    LIBS          += -L/usr/local/opt/opencv/lib -lopencv_core -lopencv_objdetect -lopencv_imgcodecs \
                      -lopencv_imgproc -lopencv_calib3d -lopencv_highgui -lopencv_ml \
                      /usr/local/lib/libtiff.5.dylib
     basler{
@@ -92,21 +96,15 @@ unix:macx {
 
 unix:!macx {
     CONFIG        += c++11
-    INCLUDEPATH   += /usr/local/opt/opencv/include
-    DEPENDPATH    += /usr/local/opt/opencv/include
+    INCLUDEPATH   += /usr/local/include/opencv4 /usr/local/include
+    DEPENDPATH    += /usr/local/include/opencv4 /usr/local/include
     LIBS          += -L/usr/local/lib -lopencv_core -lopencv_objdetect -lopencv_imgproc -lopencv_calib3d -lopencv_highgui -lopencv_ml
 }
 
 win32 {
     INCLUDEPATH   += $$quote(C:/usr/opencv/include) $$quote(C:/usr/include)
     DEPENDPATH    += $$quote(C:/usr/opencv/include) $$quote(C:/usr/include)
-    LIBS          += -L$$quote(C:/usr/lib) -L$$quote(C:/usr/opencv/x64/vc15/lib) -llibtiff_i -lopengl32
-    CONFIG(release, debug|release): LIBS += -lopencv_world342
-    CONFIG(debug, debug|release):   LIBS += -lopencv_world342d
-
-    basler{
-        INCLUDEPATH += $$quote(C:/Program Files/Basler/pylon 5/Development/include)
-        DEPENDPATH  += $$quote(C:/Program Files/Basler/pylon 5/Development/include)
-        LIBS        += -L$$quote(C:/Program Files/Basler/pylon 5/Development/lib/x64/) -lPylonBase_v5_1
-    }
+    LIBS          += -L$$quote(C:/usr/lib) -L$$quote(C:/usr/opencv/x64/vc16/lib) -llibtiff_i -lopengl32
+    CONFIG(release, debug|release): LIBS += -lopencv_core452 -lopencv_objdetect452 -lopencv_imgproc452 -lopencv_calib3d452 -lopencv_highgui452
+    CONFIG(debug, debug|release):   LIBS += -lopencv_core452d -lopencv_objdetect452d -lopencv_imgproc452d -lopencv_calib3d452d -lopencv_highgui452d
 }

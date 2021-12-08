@@ -30,29 +30,28 @@
  *                                                                               *
  *********************************************************************************/
 
-#include "laucaltagglwidget.h"
+#include "laucaltagoptglwidget.h"
 
 /****************************************************************************/
 /****************************************************************************/
 /****************************************************************************/
-LAUCalTagDialog::LAUCalTagDialog(QImage image, QWidget *parent) : QDialog(parent)
+LAUCalTagOptDialog::LAUCalTagOptDialog(QImage image, QWidget *parent) : QDialog(parent)
 {
     if (image.isNull()) {
         QSettings settings;
-        QString directory = settings.value("LAUCalTagDialog::lastUsedDirectory", QStandardPaths::writableLocation(QStandardPaths::DocumentsLocation)).toString();
+        QString directory = settings.value("LAUCalTagOptDialog::lastUsedDirectory", QStandardPaths::writableLocation(QStandardPaths::DocumentsLocation)).toString();
         QString filename = QFileDialog::getOpenFileName(0, QString("Load image from disk"), directory, QString("*.tif *.tiff *.bmp *.jpg *.jpeg *.png"));
         if (filename.isEmpty() == false) {
-            settings.setValue("LAUCalTagDialog::lastUsedDirectory", QFileInfo(filename).absoluteFilePath());
+            settings.setValue("LAUCalTagOptDialog::lastUsedDirectory", QFileInfo(filename).absoluteFilePath());
         } else {
             return;
         }
         image = QImage(filename);
-        this->setWindowTitle(QFileInfo(filename).baseName());
     }
 
     this->setLayout(new QVBoxLayout());
     this->layout()->setContentsMargins(0, 0, 0, 0);
-    widget = new LAUCalTagWidget(image);
+    widget = new LAUCalTagOptWidget(image);
     this->layout()->addWidget(widget);
 
     QDialogButtonBox *buttonBox = new QDialogButtonBox(QDialogButtonBox::Ok | QDialogButtonBox::Cancel);
@@ -64,14 +63,14 @@ LAUCalTagDialog::LAUCalTagDialog(QImage image, QWidget *parent) : QDialog(parent
 /****************************************************************************/
 /****************************************************************************/
 /****************************************************************************/
-LAUCalTagDialog::LAUCalTagDialog(LAUMemoryObject image, QWidget *parent) : QDialog(parent)
+LAUCalTagOptDialog::LAUCalTagOptDialog(LAUMemoryObject image, QWidget *parent) : QDialog(parent)
 {
     if (image.isNull()) {
         QSettings settings;
-        QString directory = settings.value("LAUCalTagDialog::lastUsedDirectory", QStandardPaths::writableLocation(QStandardPaths::DocumentsLocation)).toString();
+        QString directory = settings.value("LAUCalTagOptDialog::lastUsedDirectory", QStandardPaths::writableLocation(QStandardPaths::DocumentsLocation)).toString();
         QString filename = QFileDialog::getOpenFileName(0, QString("Load image from disk"), directory, QString("*.tif *.tiff"));
         if (filename.isEmpty() == false) {
-            settings.setValue("LAUCalTagDialog::lastUsedDirectory", QFileInfo(filename).absoluteFilePath());
+            settings.setValue("LAUCalTagOptDialog::lastUsedDirectory", QFileInfo(filename).absoluteFilePath());
         } else {
             return;
         }
@@ -80,7 +79,7 @@ LAUCalTagDialog::LAUCalTagDialog(LAUMemoryObject image, QWidget *parent) : QDial
 
     this->setLayout(new QVBoxLayout());
     this->layout()->setContentsMargins(0, 0, 0, 0);
-    widget = new LAUCalTagWidget(image);
+    widget = new LAUCalTagOptWidget(image);
     this->layout()->addWidget(widget);
 
     QDialogButtonBox *buttonBox = new QDialogButtonBox(QDialogButtonBox::Ok | QDialogButtonBox::Cancel);
@@ -92,14 +91,14 @@ LAUCalTagDialog::LAUCalTagDialog(LAUMemoryObject image, QWidget *parent) : QDial
 /****************************************************************************/
 /****************************************************************************/
 /****************************************************************************/
-LAUCalTagWidget::LAUCalTagWidget(QImage image, QWidget *parent) : QWidget(parent), glWidget(nullptr), widget(nullptr)
+LAUCalTagOptWidget::LAUCalTagOptWidget(QImage image, QWidget *parent) : QWidget(parent), glWidget(nullptr), widget(nullptr)
 {
     this->setLayout(new QVBoxLayout());
     this->setWindowTitle(QString("LAUCalTag Dialog"));
     this->layout()->setContentsMargins(6, 6, 6, 6);
     this->layout()->setSpacing(10);
 
-    glWidget = new LAUCalTagGLWidget();
+    glWidget = new LAUCalTagOptGLWidget();
     glWidget->setMinimumSize(320, 240);
     glWidget->setSizePolicy(QSizePolicy::Expanding, QSizePolicy::Expanding);
     this->layout()->addWidget(glWidget);
@@ -114,14 +113,14 @@ LAUCalTagWidget::LAUCalTagWidget(QImage image, QWidget *parent) : QWidget(parent
 /****************************************************************************/
 /****************************************************************************/
 /****************************************************************************/
-LAUCalTagWidget::LAUCalTagWidget(LAUMemoryObject image, QWidget *parent) : QWidget(parent), glWidget(nullptr), widget(nullptr)
+LAUCalTagOptWidget::LAUCalTagOptWidget(LAUMemoryObject image, QWidget *parent) : QWidget(parent), glWidget(nullptr), widget(nullptr)
 {
     this->setLayout(new QVBoxLayout());
     this->setWindowTitle(QString("LAUCalTag Dialog"));
     this->layout()->setContentsMargins(6, 6, 6, 6);
     this->layout()->setSpacing(10);
 
-    glWidget = new LAUCalTagGLWidget();
+    glWidget = new LAUCalTagOptGLWidget();
     glWidget->setMinimumSize(320, 240);
     glWidget->setSizePolicy(QSizePolicy::Expanding, QSizePolicy::Expanding);
     this->layout()->addWidget(glWidget);
@@ -136,14 +135,14 @@ LAUCalTagWidget::LAUCalTagWidget(LAUMemoryObject image, QWidget *parent) : QWidg
 /****************************************************************************/
 /****************************************************************************/
 /****************************************************************************/
-LAUCalTagWidget::LAUCalTagWidget(QWidget *parent) : QWidget(parent), glWidget(nullptr), widget(nullptr)
+LAUCalTagOptWidget::LAUCalTagOptWidget(QWidget *parent) : QWidget(parent), glWidget(nullptr), widget(nullptr)
 {
     this->setLayout(new QVBoxLayout());
     this->setWindowTitle(QString("LAUCalTag Dialog"));
     this->layout()->setContentsMargins(6, 6, 6, 6);
     this->layout()->setSpacing(10);
 
-    glWidget = new LAUCalTagGLWidget();
+    glWidget = new LAUCalTagOptGLWidget();
     glWidget->setMinimumSize(320, 240);
     glWidget->setSizePolicy(QSizePolicy::Expanding, QSizePolicy::Expanding);
     this->layout()->addWidget(glWidget);
@@ -156,53 +155,53 @@ LAUCalTagWidget::LAUCalTagWidget(QWidget *parent) : QWidget(parent), glWidget(nu
 /****************************************************************************/
 /****************************************************************************/
 /****************************************************************************/
-LAUCalTagGLWidget::LAUCalTagGLWidget(QWidget *parent) : LAUVideoGLWidget(parent), calTagGLObject(nullptr)
+LAUCalTagOptGLWidget::LAUCalTagOptGLWidget(QWidget *parent) : LAUVideoGLWidget(parent), calTagOptGLObject(nullptr)
 {
-    calTagGLObject = new LAUCalTagGLObject();
-    connect(calTagGLObject, SIGNAL(update()), this, SLOT(onUpdate()));
+    calTagOptGLObject = new LAUCalTagOptGLObject();
+    connect(calTagOptGLObject, SIGNAL(update()), this, SLOT(onUpdate()));
 }
 
 /****************************************************************************/
 /****************************************************************************/
 /****************************************************************************/
-LAUCalTagGLWidget::~LAUCalTagGLWidget()
+LAUCalTagOptGLWidget::~LAUCalTagOptGLWidget()
 {
-    if (calTagGLObject) {
-        if (calTagGLObject->isValid()) {
+    if (calTagOptGLObject) {
+        if (calTagOptGLObject->isValid()) {
             makeCurrent();
         }
-        delete calTagGLObject;
+        delete calTagOptGLObject;
     }
-    qDebug() << "LAUCalTagGLWidget::~LAUCalTagGLWidget()";
+    qDebug() << "LAUCalTagOptGLWidget::~LAUCalTagOptGLWidget()";
 }
 
 /****************************************************************************/
 /****************************************************************************/
 /****************************************************************************/
-void LAUCalTagGLWidget::initialize()
+void LAUCalTagOptGLWidget::initialize()
 {
-    if (calTagGLObject) {
-        calTagGLObject->initializeGL();
-    }
-}
-
-/****************************************************************************/
-/****************************************************************************/
-/****************************************************************************/
-void LAUCalTagGLWidget::process()
-{
-    if (calTagGLObject) {
-        calTagGLObject->processGL(videoTexture);
+    if (calTagOptGLObject) {
+        calTagOptGLObject->initializeGL();
     }
 }
 
 /****************************************************************************/
 /****************************************************************************/
 /****************************************************************************/
-void LAUCalTagGLWidget::paint()
+void LAUCalTagOptGLWidget::process()
 {
-    if (calTagGLObject && calTagGLObject->isValid()) {
-        calTagGLObject->paintGL();
+    if (calTagOptGLObject) {
+        calTagOptGLObject->processGL(videoTexture);
+    }
+}
+
+/****************************************************************************/
+/****************************************************************************/
+/****************************************************************************/
+void LAUCalTagOptGLWidget::paint()
+{
+    if (calTagOptGLObject && calTagOptGLObject->isValid()) {
+        calTagOptGLObject->paintGL();
     } else {
         LAUVideoGLWidget::paint();
     }

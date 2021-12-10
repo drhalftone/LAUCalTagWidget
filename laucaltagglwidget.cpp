@@ -35,58 +35,68 @@
 /****************************************************************************/
 /****************************************************************************/
 /****************************************************************************/
-LAUCalTagDialog::LAUCalTagDialog(QImage image, QWidget *parent) : QDialog(parent)
+LAUCalTagDialog::LAUCalTagDialog(QImage image, QWidget *parent) : QDialog(parent), validFlag(true)
 {
     if (image.isNull()) {
         QSettings settings;
         QString directory = settings.value("LAUCalTagDialog::lastUsedDirectory", QStandardPaths::writableLocation(QStandardPaths::DocumentsLocation)).toString();
+        if (QDir().exists(directory) == false) {
+            directory = QStandardPaths::writableLocation(QStandardPaths::DocumentsLocation);
+        }
         QString filename = QFileDialog::getOpenFileName(0, QString("Load image from disk"), directory, QString("*.tif *.tiff *.bmp *.jpg *.jpeg *.png"));
         if (filename.isEmpty() == false) {
             settings.setValue("LAUCalTagDialog::lastUsedDirectory", QFileInfo(filename).absoluteFilePath());
-        } else {
-            return;
+            image = QImage(filename);
+            this->setWindowTitle(QFileInfo(filename).baseName());
         }
-        image = QImage(filename);
-        this->setWindowTitle(QFileInfo(filename).baseName());
     }
 
-    this->setLayout(new QVBoxLayout());
-    this->layout()->setContentsMargins(0, 0, 0, 0);
-    widget = new LAUCalTagWidget(image);
-    this->layout()->addWidget(widget);
+    if (image.isNull()) {
+        validFlag = false;
+    } else {
+        this->setLayout(new QVBoxLayout());
+        this->layout()->setContentsMargins(0, 0, 0, 0);
+        widget = new LAUCalTagWidget(image);
+        this->layout()->addWidget(widget);
 
-    QDialogButtonBox *buttonBox = new QDialogButtonBox(QDialogButtonBox::Ok | QDialogButtonBox::Cancel);
-    connect(buttonBox->button(QDialogButtonBox::Ok), SIGNAL(clicked()), this, SLOT(accept()));
-    connect(buttonBox->button(QDialogButtonBox::Cancel), SIGNAL(clicked()), this, SLOT(reject()));
-    this->layout()->addWidget(buttonBox);
+        QDialogButtonBox *buttonBox = new QDialogButtonBox(QDialogButtonBox::Ok | QDialogButtonBox::Cancel);
+        connect(buttonBox->button(QDialogButtonBox::Ok), SIGNAL(clicked()), this, SLOT(accept()));
+        connect(buttonBox->button(QDialogButtonBox::Cancel), SIGNAL(clicked()), this, SLOT(reject()));
+        this->layout()->addWidget(buttonBox);
+    }
 }
 
 /****************************************************************************/
 /****************************************************************************/
 /****************************************************************************/
-LAUCalTagDialog::LAUCalTagDialog(LAUMemoryObject image, QWidget *parent) : QDialog(parent)
+LAUCalTagDialog::LAUCalTagDialog(LAUMemoryObject image, QWidget *parent) : QDialog(parent), validFlag(true)
 {
     if (image.isNull()) {
         QSettings settings;
         QString directory = settings.value("LAUCalTagDialog::lastUsedDirectory", QStandardPaths::writableLocation(QStandardPaths::DocumentsLocation)).toString();
+        if (QDir().exists(directory) == false) {
+            directory = QStandardPaths::writableLocation(QStandardPaths::DocumentsLocation);
+        }
         QString filename = QFileDialog::getOpenFileName(0, QString("Load image from disk"), directory, QString("*.tif *.tiff"));
         if (filename.isEmpty() == false) {
             settings.setValue("LAUCalTagDialog::lastUsedDirectory", QFileInfo(filename).absoluteFilePath());
-        } else {
-            return;
+            image = LAUMemoryObject(filename);
         }
-        image = LAUMemoryObject(filename);
     }
 
-    this->setLayout(new QVBoxLayout());
-    this->layout()->setContentsMargins(0, 0, 0, 0);
-    widget = new LAUCalTagWidget(image);
-    this->layout()->addWidget(widget);
+    if (image.isNull()) {
+        validFlag = false;
+    } else {
+        this->setLayout(new QVBoxLayout());
+        this->layout()->setContentsMargins(0, 0, 0, 0);
+        widget = new LAUCalTagWidget(image);
+        this->layout()->addWidget(widget);
 
-    QDialogButtonBox *buttonBox = new QDialogButtonBox(QDialogButtonBox::Ok | QDialogButtonBox::Cancel);
-    connect(buttonBox->button(QDialogButtonBox::Ok), SIGNAL(clicked()), this, SLOT(accept()));
-    connect(buttonBox->button(QDialogButtonBox::Cancel), SIGNAL(clicked()), this, SLOT(reject()));
-    this->layout()->addWidget(buttonBox);
+        QDialogButtonBox *buttonBox = new QDialogButtonBox(QDialogButtonBox::Ok | QDialogButtonBox::Cancel);
+        connect(buttonBox->button(QDialogButtonBox::Ok), SIGNAL(clicked()), this, SLOT(accept()));
+        connect(buttonBox->button(QDialogButtonBox::Cancel), SIGNAL(clicked()), this, SLOT(reject()));
+        this->layout()->addWidget(buttonBox);
+    }
 }
 
 /****************************************************************************/

@@ -197,10 +197,7 @@ public:
 
     bool isValid()
     {
-        if (widget) {
-            return (true);
-        }
-        return (false);
+        return (validFlag);
     }
 
 protected:
@@ -222,6 +219,7 @@ protected:
     }
 
 private:
+    bool validFlag;
     LAUCalTagWidget *widget;
 };
 
